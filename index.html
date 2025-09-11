@@ -1061,6 +1061,11 @@
                 // Switch back to preview view
                 if (isCodeView) {
                     toggleView();
+                    // Update the main toggle button label
+                    const toggleBtn = document.querySelector('.panel-header button[onclick="toggleView()"]');
+                    if (toggleBtn) {
+                        toggleBtn.textContent = 'Toggle Code View';
+                    }
                 }
                 
             } catch (error) {
