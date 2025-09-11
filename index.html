@@ -34,17 +34,6 @@
             white-space: normal;
         }
 
-        .spec-header sup,
-        .spec-content sup {
-            font-size: 0.7em;
-            vertical-align: super;
-        }
-
-        .spec-header sub,
-        .spec-content sub {
-            font-size: 0.7em;
-            vertical-align: sub;
-        }
 
         .mobile-br,
         .mobile-hyphen {
@@ -362,30 +351,6 @@
             grid-template-columns: 1fr !important;
         }
 
-        /* Format buttons styles */
-        .format-buttons {
-            display: flex;
-            gap: 5px;
-            margin-top: 5px;
-        }
-
-        .format-btn {
-            background-color: #f8f9fa;
-            border: 1px solid #ddd;
-            padding: 4px 8px;
-            cursor: pointer;
-            border-radius: 3px;
-            font-size: 11px;
-            color: #495057;
-        }
-
-        .format-btn:hover {
-            background-color: #e9ecef;
-        }
-
-        .input-group {
-            position: relative;
-        }
 
         /* Toast notification styles */
         .toast {
@@ -596,15 +561,9 @@
                             <div id="title-rows-${card.id}">
                                 ${card.title.map((titleRow, index) => `
                                     <div class="row-editor">
-                                        <div class="input-group" style="flex: 1; margin-right: 10px;">
-                                            <input type="text" class="form-control" id="title-${card.id}-${index}" value="${escapeHtml(titleRow)}" 
-                                                   onchange="updateCardTitle(${card.id}, ${index}, this.value)"
-                                                   placeholder="Enter title (HTML allowed: &lt;br&gt;, &lt;sup&gt;, &lt;sub&gt;)">
-                                            <div class="format-buttons">
-                                                <button class="format-btn" onclick="insertTag('title-${card.id}-${index}', 'sup')">x<sup>2</sup></button>
-                                                <button class="format-btn" onclick="insertTag('title-${card.id}-${index}', 'sub')">x<sub>2</sub></button>
-                                            </div>
-                                        </div>
+                                        <input type="text" class="form-control" id="title-${card.id}-${index}" value="${escapeHtml(titleRow)}" 
+                                               onchange="updateCardTitle(${card.id}, ${index}, this.value)"
+                                               placeholder="Enter title (HTML allowed: &lt;br&gt;)" style="flex: 1; margin-right: 10px;">
                                         ${card.title.length > 1 ? 
                                             `<button class="btn btn-danger btn-sm" onclick="deleteTitleRow(${card.id}, ${index})">×</button>` : 
                                             '<div style="width: 24px;"></div>'
@@ -619,15 +578,9 @@
                             <div id="rows-${card.id}">
                                 ${card.rows.map((row, index) => `
                                     <div class="row-editor">
-                                        <div class="input-group" style="flex: 1; margin-right: 10px;">
-                                            <input type="text" class="form-control" id="row-${card.id}-${index}" value="${escapeHtml(row)}" 
-                                                   onchange="updateRow(${card.id}, ${index}, this.value)"
-                                                   placeholder="Enter content (HTML allowed: &lt;br&gt;, &lt;sup&gt;, &lt;sub&gt;)">
-                                            <div class="format-buttons">
-                                                <button class="format-btn" onclick="insertTag('row-${card.id}-${index}', 'sup')">x<sup>2</sup></button>
-                                                <button class="format-btn" onclick="insertTag('row-${card.id}-${index}', 'sub')">x<sub>2</sub></button>
-                                            </div>
-                                        </div>
+                                        <input type="text" class="form-control" id="row-${card.id}-${index}" value="${escapeHtml(row)}" 
+                                               onchange="updateRow(${card.id}, ${index}, this.value)"
+                                               placeholder="Enter content (HTML allowed: &lt;br&gt;)" style="flex: 1; margin-right: 10px;">
                                         ${card.rows.length > 1 ? 
                                             `<button class="btn btn-danger btn-sm" onclick="deleteRow(${card.id}, ${index})">×</button>` : 
                                             '<div style="width: 24px;"></div>'
@@ -695,17 +648,6 @@
         white-space: normal;
       }
 
-      .spec-header sup,
-      .spec-content sup {
-        font-size: 0.7em;
-        vertical-align: super;
-      }
-
-      .spec-header sub,
-      .spec-content sub {
-        font-size: 0.7em;
-        vertical-align: sub;
-      }
 
       .mobile-br,
       .mobile-hyphen {
@@ -915,40 +857,6 @@
             });
         }
 
-        // Insert HTML tag at cursor position
-        function insertTag(inputId, tagName) {
-            const input = document.getElementById(inputId);
-            const start = input.selectionStart;
-            const end = input.selectionEnd;
-            const selectedText = input.value.substring(start, end);
-            
-            let insertText;
-            if (selectedText) {
-                // Wrap selected text
-                insertText = `<${tagName}>${selectedText}</${tagName}>`;
-            } else {
-                // Insert empty tags with cursor in middle
-                insertText = `<${tagName}></${tagName}>`;
-            }
-            
-            const beforeText = input.value.substring(0, start);
-            const afterText = input.value.substring(end);
-            
-            input.value = beforeText + insertText + afterText;
-            
-            // Set cursor position
-            if (selectedText) {
-                input.setSelectionRange(start + insertText.length, start + insertText.length);
-            } else {
-                const cursorPos = start + tagName.length + 2; // Position inside tags
-                input.setSelectionRange(cursorPos, cursorPos);
-            }
-            
-            input.focus();
-            
-            // Trigger change event to update preview
-            input.dispatchEvent(new Event('change'));
-        }
 
         // Show toast notification
         function showToast(message, type = 'success') {
