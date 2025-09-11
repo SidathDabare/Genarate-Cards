@@ -34,6 +34,18 @@
             white-space: normal;
         }
 
+        .spec-header sup,
+        .spec-content sup {
+            font-size: 0.7em;
+            vertical-align: super;
+        }
+
+        .spec-header sub,
+        .spec-content sub {
+            font-size: 0.7em;
+            vertical-align: sub;
+        }
+
         .mobile-br,
         .mobile-hyphen {
             display: none;
@@ -337,6 +349,61 @@
         .preview-container.mobile .specs-container {
             grid-template-columns: 1fr !important;
         }
+
+        /* Format buttons styles */
+        .format-buttons {
+            display: flex;
+            gap: 5px;
+            margin-top: 5px;
+        }
+
+        .format-btn {
+            background-color: #f8f9fa;
+            border: 1px solid #ddd;
+            padding: 4px 8px;
+            cursor: pointer;
+            border-radius: 3px;
+            font-size: 11px;
+            color: #495057;
+        }
+
+        .format-btn:hover {
+            background-color: #e9ecef;
+        }
+
+        .input-group {
+            position: relative;
+        }
+
+        /* Toast notification styles */
+        .toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background-color: #28a745;
+            color: white;
+            padding: 12px 20px;
+            border-radius: 5px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            z-index: 9999;
+            opacity: 0;
+            transform: translateX(100%);
+            transition: all 0.3s ease;
+            font-size: 14px;
+        }
+
+        .toast.show {
+            opacity: 1;
+            transform: translateX(0);
+        }
+
+        .toast.error {
+            background-color: #dc3545;
+        }
+
+        .toast.info {
+            background-color: #17a2b8;
+        }
     </style>
 </head>
 <body>
@@ -511,9 +578,15 @@
                             <div id="title-rows-${card.id}">
                                 ${card.title.map((titleRow, index) => `
                                     <div class="row-editor">
-                                        <input type="text" class="form-control" value="${escapeHtml(titleRow)}" 
-                                               onchange="updateCardTitle(${card.id}, ${index}, this.value)"
-                                               placeholder="Enter title (HTML allowed: &lt;br&gt;, &lt;sup&gt;, &lt;sub&gt;)">
+                                        <div class="input-group" style="flex: 1; margin-right: 10px;">
+                                            <input type="text" class="form-control" id="title-${card.id}-${index}" value="${escapeHtml(titleRow)}" 
+                                                   onchange="updateCardTitle(${card.id}, ${index}, this.value)"
+                                                   placeholder="Enter title (HTML allowed: &lt;br&gt;, &lt;sup&gt;, &lt;sub&gt;)">
+                                            <div class="format-buttons">
+                                                <button class="format-btn" onclick="insertTag('title-${card.id}-${index}', 'sup')">x<sup>2</sup></button>
+                                                <button class="format-btn" onclick="insertTag('title-${card.id}-${index}', 'sub')">x<sub>2</sub></button>
+                                            </div>
+                                        </div>
                                         ${card.title.length > 1 ? 
                                             `<button class="btn btn-danger btn-sm" onclick="deleteTitleRow(${card.id}, ${index})">×</button>` : 
                                             '<div style="width: 24px;"></div>'
@@ -528,9 +601,15 @@
                             <div id="rows-${card.id}">
                                 ${card.rows.map((row, index) => `
                                     <div class="row-editor">
-                                        <input type="text" class="form-control" value="${escapeHtml(row)}" 
-                                               onchange="updateRow(${card.id}, ${index}, this.value)"
-                                               placeholder="Enter content (HTML allowed: &lt;br&gt;, &lt;sup&gt;, &lt;sub&gt;)">
+                                        <div class="input-group" style="flex: 1; margin-right: 10px;">
+                                            <input type="text" class="form-control" id="row-${card.id}-${index}" value="${escapeHtml(row)}" 
+                                                   onchange="updateRow(${card.id}, ${index}, this.value)"
+                                                   placeholder="Enter content (HTML allowed: &lt;br&gt;, &lt;sup&gt;, &lt;sub&gt;)">
+                                            <div class="format-buttons">
+                                                <button class="format-btn" onclick="insertTag('row-${card.id}-${index}', 'sup')">x<sup>2</sup></button>
+                                                <button class="format-btn" onclick="insertTag('row-${card.id}-${index}', 'sub')">x<sub>2</sub></button>
+                                            </div>
+                                        </div>
                                         ${card.rows.length > 1 ? 
                                             `<button class="btn btn-danger btn-sm" onclick="deleteRow(${card.id}, ${index})">×</button>` : 
                                             '<div style="width: 24px;"></div>'
@@ -596,6 +675,18 @@
         padding: 15px;
         word-break: break-word;
         white-space: normal;
+      }
+
+      .spec-header sup,
+      .spec-content sup {
+        font-size: 0.7em;
+        vertical-align: super;
+      }
+
+      .spec-header sub,
+      .spec-content sub {
+        font-size: 0.7em;
+        vertical-align: sub;
       }
 
       .mobile-br,
@@ -671,9 +762,9 @@
             try {
                 localStorage.setItem('specCards', JSON.stringify(cards));
                 localStorage.setItem('cardIdCounter', cardIdCounter.toString());
-                alert('Data saved successfully!');
+                showToast('Data saved successfully!', 'success');
             } catch (e) {
-                alert('Error saving data: ' + e.message);
+                showToast('Error saving data: ' + e.message, 'error');
             }
         }
 
@@ -804,6 +895,73 @@
                     btn.classList.add('active');
                 }
             });
+        }
+
+        // Insert HTML tag at cursor position
+        function insertTag(inputId, tagName) {
+            const input = document.getElementById(inputId);
+            const start = input.selectionStart;
+            const end = input.selectionEnd;
+            const selectedText = input.value.substring(start, end);
+            
+            let insertText;
+            if (selectedText) {
+                // Wrap selected text
+                insertText = `<${tagName}>${selectedText}</${tagName}>`;
+            } else {
+                // Insert empty tags with cursor in middle
+                insertText = `<${tagName}></${tagName}>`;
+            }
+            
+            const beforeText = input.value.substring(0, start);
+            const afterText = input.value.substring(end);
+            
+            input.value = beforeText + insertText + afterText;
+            
+            // Set cursor position
+            if (selectedText) {
+                input.setSelectionRange(start + insertText.length, start + insertText.length);
+            } else {
+                const cursorPos = start + tagName.length + 2; // Position inside tags
+                input.setSelectionRange(cursorPos, cursorPos);
+            }
+            
+            input.focus();
+            
+            // Trigger change event to update preview
+            input.dispatchEvent(new Event('change'));
+        }
+
+        // Show toast notification
+        function showToast(message, type = 'success') {
+            // Remove any existing toast
+            const existingToast = document.querySelector('.toast');
+            if (existingToast) {
+                existingToast.remove();
+            }
+
+            // Create toast element
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.textContent = message;
+            
+            // Add to page
+            document.body.appendChild(toast);
+            
+            // Show toast with animation
+            setTimeout(() => {
+                toast.classList.add('show');
+            }, 10);
+            
+            // Hide and remove toast after 3 seconds
+            setTimeout(() => {
+                toast.classList.remove('show');
+                setTimeout(() => {
+                    if (toast.parentNode) {
+                        toast.remove();
+                    }
+                }, 300);
+            }, 3000);
         }
 
         // Initialize when page loads
