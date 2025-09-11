@@ -1,0 +1,606 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+    <title>Spec Card Generator</title>
+    <style>
+        /* Original Card Styles */
+        .specs-container {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 2px;
+            margin-bottom: 50px;
+        }
+
+        .spec-card {
+            border: 1px solid rgb(145, 145, 145);
+            background-color: #ffffff;
+            text-align: center;
+            font-size: 14px;
+        }
+
+        .spec-header {
+            background-color: #f9f9f9;
+            padding: 15px;
+            font-weight: bold;
+            border-bottom: 1px solid rgb(145, 145, 145);
+            min-height: 28px;
+        }
+
+        .spec-content {
+            padding: 15px;
+            word-break: break-word;
+            white-space: normal;
+        }
+
+        .mobile-br,
+        .mobile-hyphen {
+            display: none;
+        }
+
+        @media (max-width: 768px) {
+            .specs-container {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            .spec-card {
+                font-size: 13px;
+            }
+            .spec-header,
+            .spec-content {
+                padding: 10px;
+            }
+            .mobile-br {
+                display: inline;
+            }
+            .mobile-hyphen::after {
+                content: "-";
+            }
+            .mobile-hyphen {
+                display: inline;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .specs-container {
+                grid-template-columns: 1fr;
+            }
+            .spec-card {
+                font-size: 12px;
+            }
+            .spec-header,
+            .spec-content {
+                padding: 8px;
+            }
+        }
+
+        /* App Layout Styles */
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f5f5f5;
+        }
+
+        .app-container {
+            display: flex;
+            height: 100vh;
+        }
+
+        .editor-panel {
+            width: 25%;
+            background-color: #fff;
+            border-right: 2px solid #ddd;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .preview-panel {
+            width: 75%;
+            background-color: #fff;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .panel-header {
+            background-color: #333;
+            color: white;
+            padding: 15px 20px;
+            font-weight: bold;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            border-bottom: 2px solid #555;
+        }
+
+        .editor-content {
+            padding: 20px;
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .preview-content {
+            padding: 20px;
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        /* Control Styles */
+        .controls {
+            margin-bottom: 20px;
+        }
+
+        .btn {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            cursor: pointer;
+            border-radius: 4px;
+            margin-right: 10px;
+            font-size: 14px;
+        }
+
+        .btn:hover {
+            background-color: #0056b3;
+        }
+
+        .btn-danger {
+            background-color: #dc3545;
+        }
+
+        .btn-danger:hover {
+            background-color: #c82333;
+        }
+
+        .btn-secondary {
+            background-color: #6c757d;
+        }
+
+        .btn-secondary:hover {
+            background-color: #545b62;
+        }
+
+        /* Card Editor Styles */
+        .card-editor {
+            border: 1px solid #ddd;
+            margin-bottom: 20px;
+            border-radius: 5px;
+            background-color: #fafafa;
+        }
+
+        .card-editor-header {
+            background-color: #e9ecef;
+            padding: 10px 15px;
+            border-bottom: 1px solid #ddd;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        textarea.form-control {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .card-content {
+            padding: 15px;
+        }
+
+        .row-editor {
+            display: flex;
+            margin-bottom: 10px;
+            align-items: center;
+        }
+
+        .row-editor input {
+            flex: 1;
+            margin-right: 10px;
+        }
+
+        .btn-sm {
+            padding: 4px 8px;
+            font-size: 12px;
+        }
+
+        /* Code view styles */
+        #codeArea {
+            background-color: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 5px;
+            padding: 15px;
+        }
+
+        #codeArea pre {
+            margin: 0;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
+        #codeArea code {
+            background-color: transparent;
+            color: #495057;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            line-height: 1.4;
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Editor Panel -->
+        <div class="editor-panel">
+            <div class="panel-header">
+                <span>Card Editor</span>
+                <div>
+                    <button class="btn btn-secondary" onclick="addCard()">Add Card</button>
+                </div>
+            </div>
+            <div class="editor-content">
+                <div class="controls">
+                    <button class="btn" onclick="saveData()">Save</button>
+                    <button class="btn btn-secondary" onclick="loadData()">Load</button>
+                    <button class="btn btn-danger" onclick="clearAll()">Clear All</button>
+                </div>
+                <div id="cardsEditor">
+                    <!-- Cards will be dynamically added here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Preview Panel -->
+        <div class="preview-panel">
+            <div class="panel-header">
+                <span>Preview</span>
+                <div>
+                    <button class="btn btn-secondary" onclick="toggleView()">Toggle Code View</button>
+                </div>
+            </div>
+            <div class="preview-content">
+                <div id="previewArea">
+                    <!-- Preview content will be generated here -->
+                </div>
+                <div id="codeArea" style="display: none;">
+                    <pre><code id="generatedCode"></code></pre>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global variables
+        let cards = [];
+        let isCodeView = false;
+        let cardIdCounter = 0;
+
+        // Initialize app
+        function init() {
+            loadData();
+            if (cards.length === 0) {
+                // Add a default card if none exist
+                addCard();
+            }
+            renderEditor();
+            updatePreview();
+        }
+
+        // Add new card
+        function addCard() {
+            console.log('addCard function called');
+            const newCard = {
+                id: ++cardIdCounter,
+                title: 'New Card Title',
+                rows: ['Row 1', 'Row 2']
+            };
+            cards.push(newCard);
+            console.log('Cards array:', cards);
+            renderEditor();
+            updatePreview();
+        }
+
+        // Delete card
+        function deleteCard(cardId) {
+            cards = cards.filter(card => card.id !== cardId);
+            renderEditor();
+            updatePreview();
+        }
+
+        // Update card title
+        function updateCardTitle(cardId, newTitle) {
+            const card = cards.find(c => c.id === cardId);
+            if (card) {
+                card.title = newTitle;
+                updatePreview();
+            }
+        }
+
+        // Add row to card
+        function addRow(cardId) {
+            const card = cards.find(c => c.id === cardId);
+            if (card) {
+                card.rows.push('New Row');
+                renderEditor();
+                updatePreview();
+            }
+        }
+
+        // Delete row from card
+        function deleteRow(cardId, rowIndex) {
+            const card = cards.find(c => c.id === cardId);
+            if (card && card.rows.length > 1) {
+                card.rows.splice(rowIndex, 1);
+                renderEditor();
+                updatePreview();
+            }
+        }
+
+        // Update row content
+        function updateRow(cardId, rowIndex, newContent) {
+            const card = cards.find(c => c.id === cardId);
+            if (card && card.rows[rowIndex] !== undefined) {
+                card.rows[rowIndex] = newContent;
+                updatePreview();
+            }
+        }
+
+        // Escape HTML function
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Render editor panel
+        function renderEditor() {
+            const editorContainer = document.getElementById('cardsEditor');
+            editorContainer.innerHTML = '';
+
+            cards.forEach(card => {
+                const cardEditor = document.createElement('div');
+                cardEditor.className = 'card-editor';
+                cardEditor.innerHTML = `
+                    <div class="card-editor-header">
+                        <span>Card ${card.id}</span>
+                        <button class="btn btn-danger btn-sm" onclick="deleteCard(${card.id})">Delete Card</button>
+                    </div>
+                    <div class="card-content">
+                        <div class="form-group">
+                            <label>Card Title:</label>
+                            <input type="text" class="form-control" value="${escapeHtml(card.title)}" 
+                                   onchange="updateCardTitle(${card.id}, this.value)">
+                        </div>
+                        <div class="form-group">
+                            <label>Content Rows:</label>
+                            <div id="rows-${card.id}">
+                                ${card.rows.map((row, index) => `
+                                    <div class="row-editor">
+                                        <input type="text" class="form-control" value="${escapeHtml(row)}" 
+                                               onchange="updateRow(${card.id}, ${index}, this.value)"
+                                               placeholder="Enter content (HTML allowed: &lt;br&gt;, &lt;sup&gt;, &lt;sub&gt;)">
+                                        ${card.rows.length > 1 ? 
+                                            `<button class="btn btn-danger btn-sm" onclick="deleteRow(${card.id}, ${index})">×</button>` : 
+                                            '<div style="width: 24px;"></div>'
+                                        }
+                                    </div>
+                                `).join('')}
+                            </div>
+                            <button class="btn btn-secondary btn-sm" onclick="addRow(${card.id})">Add Row</button>
+                        </div>
+                    </div>
+                `;
+                editorContainer.appendChild(cardEditor);
+            });
+        }
+
+        // Generate HTML code
+        function generateHTML() {
+            const cardsHTML = cards.map(card => `
+      <div class="spec-card">
+        <div class="spec-header">${card.title}</div>
+        <div class="spec-content">
+          ${card.rows.join('<br />\n          ')}
+        </div>
+      </div>`).join('\n      ');
+
+            return `<!DOCTYPE html>
+<html lang="de">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0"
+    />
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        padding: 0 10px 0 10px;
+      }
+
+      .specs-container {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 2px;
+        margin-bottom: 50px;
+      }
+
+      .spec-card {
+        border: 1px solid rgb(145, 145, 145);
+        background-color: #ffffff;
+        text-align: center;
+        font-size: 14px;
+      }
+
+      .spec-header {
+        background-color: #f9f9f9;
+        padding: 15px;
+        font-weight: bold;
+        border-bottom: 1px solid rgb(145, 145, 145);
+        min-height: 28px;
+      }
+
+      .spec-content {
+        padding: 15px;
+        word-break: break-word;
+        white-space: normal;
+      }
+
+      .mobile-br,
+      .mobile-hyphen {
+        display: none;
+      }
+
+      @media (max-width: 768px) {
+        .specs-container {
+          grid-template-columns: repeat(2, 1fr);
+        }
+        .spec-card {
+          font-size: 13px;
+        }
+        .spec-header,
+        .spec-content {
+          padding: 10px;
+        }
+        .mobile-br {
+          display: inline;
+        }
+        .mobile-hyphen::after {
+          content: "-";
+        }
+        .mobile-hyphen {
+          display: inline;
+        }
+      }
+
+      @media (max-width: 480px) {
+        .specs-container {
+          grid-template-columns: 1fr;
+        }
+        .spec-card {
+          font-size: 12px;
+        }
+        .spec-header,
+        .spec-content {
+          padding: 8px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="specs-container">
+      ${cardsHTML}
+    </div>
+  </body>
+</html>`;
+        }
+
+        // Update preview
+        function updatePreview() {
+            const previewArea = document.getElementById('previewArea');
+            const codeArea = document.getElementById('generatedCode');
+            
+            // Generate cards HTML for preview
+            const cardsHTML = cards.map(card => `
+                <div class="spec-card">
+                    <div class="spec-header">${card.title}</div>
+                    <div class="spec-content">
+                        ${card.rows.join('<br />')}
+                    </div>
+                </div>
+            `).join('');
+            
+            previewArea.innerHTML = `<div class="specs-container">${cardsHTML}</div>`;
+            codeArea.textContent = generateHTML();
+        }
+
+        // Save data to localStorage
+        function saveData() {
+            try {
+                localStorage.setItem('specCards', JSON.stringify(cards));
+                localStorage.setItem('cardIdCounter', cardIdCounter.toString());
+                alert('Data saved successfully!');
+            } catch (e) {
+                alert('Error saving data: ' + e.message);
+            }
+        }
+
+        // Load data from localStorage
+        function loadData() {
+            try {
+                const savedCards = localStorage.getItem('specCards');
+                const savedCounter = localStorage.getItem('cardIdCounter');
+                
+                if (savedCards) {
+                    cards = JSON.parse(savedCards);
+                }
+                if (savedCounter) {
+                    cardIdCounter = parseInt(savedCounter);
+                }
+            } catch (e) {
+                console.error('Error loading data:', e);
+                cards = [];
+                cardIdCounter = 0;
+            }
+        }
+
+        // Clear all data
+        function clearAll() {
+            if (confirm('Are you sure you want to clear all cards?')) {
+                cards = [];
+                cardIdCounter = 0;
+                renderEditor();
+                updatePreview();
+                localStorage.removeItem('specCards');
+                localStorage.removeItem('cardIdCounter');
+            }
+        }
+
+        // Toggle between preview and code view
+        function toggleView() {
+            isCodeView = !isCodeView;
+            const previewArea = document.getElementById('previewArea');
+            const codeArea = document.getElementById('codeArea');
+            const toggleBtn = event.target;
+
+            if (isCodeView) {
+                previewArea.style.display = 'none';
+                codeArea.style.display = 'block';
+                toggleBtn.textContent = 'Show Preview';
+            } else {
+                previewArea.style.display = 'block';
+                codeArea.style.display = 'none';
+                toggleBtn.textContent = 'Toggle Code View';
+            }
+        }
+
+        // Initialize when page loads
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>
