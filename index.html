@@ -236,6 +236,7 @@
             border: 1px solid #e9ecef;
             border-radius: 5px;
             padding: 15px;
+            position: relative;
         }
 
         #codeArea pre {
@@ -250,6 +251,30 @@
             font-family: 'Courier New', monospace;
             font-size: 12px;
             line-height: 1.4;
+        }
+
+        .copy-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background-color: #6c757d;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            cursor: pointer;
+            border-radius: 4px;
+            font-size: 12px;
+            opacity: 0.8;
+            transition: opacity 0.2s;
+        }
+
+        .copy-btn:hover {
+            opacity: 1;
+            background-color: #545b62;
+        }
+
+        .copy-btn.copied {
+            background-color: #28a745;
         }
     </style>
 </head>
@@ -288,6 +313,7 @@
                     <!-- Preview content will be generated here -->
                 </div>
                 <div id="codeArea" style="display: none;">
+                    <button class="copy-btn" onclick="copyCode()">Copy</button>
                     <pre><code id="generatedCode"></code></pre>
                 </div>
             </div>
@@ -597,6 +623,58 @@
                 codeArea.style.display = 'none';
                 toggleBtn.textContent = 'Toggle Code View';
             }
+        }
+
+        // Copy code to clipboard
+        function copyCode() {
+            const codeElement = document.getElementById('generatedCode');
+            const copyBtn = document.querySelector('.copy-btn');
+            
+            if (navigator.clipboard && window.isSecureContext) {
+                // Use modern clipboard API
+                navigator.clipboard.writeText(codeElement.textContent).then(function() {
+                    showCopyFeedback(copyBtn);
+                }).catch(function(err) {
+                    console.error('Could not copy text: ', err);
+                    fallbackCopyText(codeElement.textContent, copyBtn);
+                });
+            } else {
+                // Fallback for older browsers or non-secure contexts
+                fallbackCopyText(codeElement.textContent, copyBtn);
+            }
+        }
+
+        // Fallback copy method
+        function fallbackCopyText(text, copyBtn) {
+            const textArea = document.createElement('textarea');
+            textArea.value = text;
+            textArea.style.position = 'fixed';
+            textArea.style.left = '-999999px';
+            textArea.style.top = '-999999px';
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+            
+            try {
+                document.execCommand('copy');
+                showCopyFeedback(copyBtn);
+            } catch (err) {
+                console.error('Fallback: Could not copy text: ', err);
+            }
+            
+            document.body.removeChild(textArea);
+        }
+
+        // Show copy feedback
+        function showCopyFeedback(copyBtn) {
+            const originalText = copyBtn.textContent;
+            copyBtn.textContent = 'Copied!';
+            copyBtn.classList.add('copied');
+            
+            setTimeout(function() {
+                copyBtn.textContent = originalText;
+                copyBtn.classList.remove('copied');
+            }, 2000);
         }
 
         // Initialize when page loads
