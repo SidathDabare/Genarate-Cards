@@ -144,11 +144,11 @@
             background-color: #007bff;
             color: white;
             border: none;
-            padding: 8px 16px;
+            padding: 6px 12px;
             cursor: pointer;
             border-radius: 4px;
-            margin-right: 10px;
-            font-size: 14px;
+            margin-right: 8px;
+            font-size: 12px;
         }
 
         .btn:hover {
@@ -181,29 +181,31 @@
 
         .card-editor-header {
             background-color: #e9ecef;
-            padding: 10px 15px;
+            padding: 6px 10px;
             border-bottom: 1px solid #ddd;
             display: flex;
             justify-content: space-between;
             align-items: center;
+            font-size: 13px;
         }
 
         .form-group {
-            margin-bottom: 15px;
+            margin-bottom: 10px;
         }
 
         .form-group label {
             display: block;
-            margin-bottom: 5px;
+            margin-bottom: 3px;
             font-weight: bold;
+            font-size: 12px;
         }
 
         .form-control {
             width: 100%;
-            padding: 8px;
+            padding: 4px 6px;
             border: 1px solid #ddd;
             border-radius: 4px;
-            font-size: 14px;
+            font-size: 12px;
         }
 
         textarea.form-control {
@@ -212,23 +214,23 @@
         }
 
         .card-content {
-            padding: 15px;
+            padding: 8px;
         }
 
         .row-editor {
             display: flex;
-            margin-bottom: 10px;
+            margin-bottom: 6px;
             align-items: center;
         }
 
         .row-editor input {
             flex: 1;
-            margin-right: 10px;
+            margin-right: 6px;
         }
 
         .btn-sm {
-            padding: 4px 8px;
-            font-size: 12px;
+            padding: 2px 6px;
+            font-size: 11px;
         }
 
         /* Code view styles */
@@ -431,7 +433,7 @@
                         <button class="btn btn-secondary btn-sm" onclick="clearTextarea()">Clear</button>
                     </div>
                     <textarea id="codeTextarea" 
-                              style="width: 100%; height: 500px; font-family: 'Courier New', monospace; font-size: 12px; border: 1px solid #ddd; border-radius: 4px; padding: 15px; resize: vertical; box-sizing: border-box;"
+                              style="width: 100%; height: 500px; min-height: 80vh; font-family: 'Courier New', monospace; font-size: 12px; border: 1px solid #ddd; border-radius: 4px; padding: 15px; resize: vertical; box-sizing: border-box;"
                               placeholder="Paste your HTML code here or edit the generated code. Click 'Parse HTML → Cards' to import cards from HTML."></textarea>
                 </div>
             </div>
