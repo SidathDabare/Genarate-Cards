@@ -411,7 +411,7 @@
             console.log('addCard function called');
             const newCard = {
                 id: ++cardIdCounter,
-                title: 'New Card Title',
+                title: ['New Card Title'],
                 rows: ['Row 1', 'Row 2']
             };
             cards.push(newCard);
@@ -428,10 +428,30 @@
         }
 
         // Update card title
-        function updateCardTitle(cardId, newTitle) {
+        function updateCardTitle(cardId, rowIndex, newTitle) {
+            const card = cards.find(c => c.id === cardId);
+            if (card && card.title[rowIndex] !== undefined) {
+                card.title[rowIndex] = newTitle;
+                updatePreview();
+            }
+        }
+
+        // Add title row to card
+        function addTitleRow(cardId) {
             const card = cards.find(c => c.id === cardId);
             if (card) {
-                card.title = newTitle;
+                card.title.push('New Title Row');
+                renderEditor();
+                updatePreview();
+            }
+        }
+
+        // Delete title row from card
+        function deleteTitleRow(cardId, rowIndex) {
+            const card = cards.find(c => c.id === cardId);
+            if (card && card.title.length > 1) {
+                card.title.splice(rowIndex, 1);
+                renderEditor();
                 updatePreview();
             }
         }
@@ -488,8 +508,20 @@
                     <div class="card-content">
                         <div class="form-group">
                             <label>Card Title:</label>
-                            <input type="text" class="form-control" value="${escapeHtml(card.title)}" 
-                                   onchange="updateCardTitle(${card.id}, this.value)">
+                            <div id="title-rows-${card.id}">
+                                ${card.title.map((titleRow, index) => `
+                                    <div class="row-editor">
+                                        <input type="text" class="form-control" value="${escapeHtml(titleRow)}" 
+                                               onchange="updateCardTitle(${card.id}, ${index}, this.value)"
+                                               placeholder="Enter title (HTML allowed: &lt;br&gt;, &lt;sup&gt;, &lt;sub&gt;)">
+                                        ${card.title.length > 1 ? 
+                                            `<button class="btn btn-danger btn-sm" onclick="deleteTitleRow(${card.id}, ${index})">×</button>` : 
+                                            '<div style="width: 24px;"></div>'
+                                        }
+                                    </div>
+                                `).join('')}
+                            </div>
+                            <button class="btn btn-secondary btn-sm" onclick="addTitleRow(${card.id})">Add Title Row</button>
                         </div>
                         <div class="form-group">
                             <label>Content Rows:</label>
@@ -518,7 +550,7 @@
         function generateHTML() {
             const cardsHTML = cards.map(card => `
       <div class="spec-card">
-        <div class="spec-header">${card.title}</div>
+        <div class="spec-header">${card.title.join('<br />\n        ')}</div>
         <div class="spec-content">
           ${card.rows.join('<br />\n          ')}
         </div>
@@ -623,7 +655,7 @@
             // Generate cards HTML for preview
             const cardsHTML = cards.map(card => `
                 <div class="spec-card">
-                    <div class="spec-header">${card.title}</div>
+                    <div class="spec-header">${card.title.join('<br />')}</div>
                     <div class="spec-content">
                         ${card.rows.join('<br />')}
                     </div>
@@ -653,6 +685,14 @@
                 
                 if (savedCards) {
                     cards = JSON.parse(savedCards);
+                    
+                    // Convert old title format (string) to new format (array)
+                    cards.forEach(card => {
+                        if (typeof card.title === 'string') {
+                            card.title = [card.title];
+                        }
+                    });
+                    
                     renderEditor();
                     updatePreview();
                 }
