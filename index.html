@@ -265,10 +265,9 @@
             line-height: 1.4;
         }
 
-        .copy-btn {
+        .code-btn {
             position: absolute;
             top: 10px;
-            right: 10px;
             background-color: #6c757d;
             color: white;
             border: none;
@@ -280,13 +279,26 @@
             transition: opacity 0.2s;
         }
 
-        .copy-btn:hover {
+        .code-btn:hover {
             opacity: 1;
             background-color: #545b62;
         }
 
-        .copy-btn.copied {
+        .code-btn.copied {
             background-color: #28a745;
+        }
+
+        .copy-btn {
+            right: 10px;
+        }
+
+        .paste-btn {
+            right: 70px;
+            background-color: #007bff;
+        }
+
+        .paste-btn:hover {
+            background-color: #0056b3;
         }
 
         /* Viewport switcher styles */
@@ -448,8 +460,14 @@
                     </div>
                 </div>
                 <div id="codeArea" style="display: none;">
-                    <button class="copy-btn" onclick="copyCode()">Copy</button>
-                    <pre><code id="generatedCode"></code></pre>
+                    <div style="margin-bottom: 10px; display: flex; gap: 10px;">
+                        <button class="code-btn copy-btn" onclick="copyFromTextarea()">Copy</button>
+                        <button class="code-btn paste-btn" onclick="parseFromTextarea()">Parse HTML → Cards</button>
+                        <button class="btn btn-secondary btn-sm" onclick="clearTextarea()">Clear</button>
+                    </div>
+                    <textarea id="codeTextarea" 
+                              style="width: 100%; height: 500px; font-family: 'Courier New', monospace; font-size: 12px; border: 1px solid #ddd; border-radius: 4px; padding: 15px; resize: vertical; box-sizing: border-box;"
+                              placeholder="Paste your HTML code here or edit the generated code. Click 'Parse HTML → Cards' to import cards from HTML."></textarea>
                 </div>
             </div>
         </div>
@@ -741,7 +759,7 @@
         // Update preview
         function updatePreview() {
             const previewArea = document.getElementById('previewArea');
-            const codeArea = document.getElementById('generatedCode');
+            const codeTextarea = document.getElementById('codeTextarea');
             
             // Generate cards HTML for preview
             const cardsHTML = cards.map(card => `
@@ -754,7 +772,7 @@
             `).join('');
             
             previewArea.innerHTML = `<div class="specs-container">${cardsHTML}</div>`;
-            codeArea.textContent = generateHTML();
+            codeTextarea.value = generateHTML();
         }
 
         // Save data to localStorage
@@ -827,22 +845,22 @@
             }
         }
 
-        // Copy code to clipboard
-        function copyCode() {
-            const codeElement = document.getElementById('generatedCode');
+        // Copy code from textarea to clipboard
+        function copyFromTextarea() {
+            const codeTextarea = document.getElementById('codeTextarea');
             const copyBtn = document.querySelector('.copy-btn');
             
             if (navigator.clipboard && window.isSecureContext) {
                 // Use modern clipboard API
-                navigator.clipboard.writeText(codeElement.textContent).then(function() {
+                navigator.clipboard.writeText(codeTextarea.value).then(function() {
                     showCopyFeedback(copyBtn);
                 }).catch(function(err) {
                     console.error('Could not copy text: ', err);
-                    fallbackCopyText(codeElement.textContent, copyBtn);
+                    fallbackCopyText(codeTextarea.value, copyBtn);
                 });
             } else {
                 // Fallback for older browsers or non-secure contexts
-                fallbackCopyText(codeElement.textContent, copyBtn);
+                fallbackCopyText(codeTextarea.value, copyBtn);
             }
         }
 
@@ -962,6 +980,99 @@
                     }
                 }, 300);
             }, 3000);
+        }
+
+        // Parse HTML and extract card data
+        function parseHTMLToCards(htmlContent) {
+            try {
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(htmlContent, 'text/html');
+                const specCards = doc.querySelectorAll('.spec-card');
+                
+                if (specCards.length === 0) {
+                    throw new Error('No spec cards found in HTML');
+                }
+                
+                const parsedCards = [];
+                let maxId = 0;
+                
+                specCards.forEach((card, index) => {
+                    const headerElement = card.querySelector('.spec-header');
+                    const contentElement = card.querySelector('.spec-content');
+                    
+                    if (!headerElement || !contentElement) {
+                        return; // Skip invalid cards
+                    }
+                    
+                    // Parse title (split by <br> tags)
+                    const titleHTML = headerElement.innerHTML.trim();
+                    const titleRows = titleHTML.split(/<br\s*\/?>/i).map(row => row.trim()).filter(row => row);
+                    
+                    // Parse content (split by <br> tags)
+                    const contentHTML = contentElement.innerHTML.trim();
+                    const contentRows = contentHTML.split(/<br\s*\/?>/i).map(row => row.trim()).filter(row => row);
+                    
+                    const cardId = ++maxId;
+                    parsedCards.push({
+                        id: cardId,
+                        title: titleRows.length > 0 ? titleRows : ['Untitled'],
+                        rows: contentRows.length > 0 ? contentRows : ['']
+                    });
+                });
+                
+                return {
+                    cards: parsedCards,
+                    maxId: maxId
+                };
+            } catch (error) {
+                console.error('Error parsing HTML:', error);
+                throw error;
+            }
+        }
+
+        // Parse HTML from textarea and load into editor
+        function parseFromTextarea() {
+            const codeTextarea = document.getElementById('codeTextarea');
+            const htmlContent = codeTextarea.value.trim();
+            
+            try {
+                if (!htmlContent) {
+                    showToast('No HTML content to parse', 'error');
+                    return;
+                }
+                
+                const result = parseHTMLToCards(htmlContent);
+                
+                if (result.cards.length === 0) {
+                    showToast('No valid spec cards found in the HTML', 'error');
+                    return;
+                }
+                
+                // Replace current cards with parsed cards
+                cards = result.cards;
+                cardIdCounter = result.maxId;
+                
+                // Update UI
+                renderEditor();
+                updatePreview();
+                
+                showToast(`Successfully imported ${result.cards.length} card(s)!`, 'success');
+                
+                // Switch back to preview view
+                if (isCodeView) {
+                    toggleView();
+                }
+                
+            } catch (error) {
+                showToast('Error parsing HTML: ' + error.message, 'error');
+            }
+        }
+
+        // Clear textarea
+        function clearTextarea() {
+            const codeTextarea = document.getElementById('codeTextarea');
+            codeTextarea.value = '';
+            codeTextarea.focus();
         }
 
         // Initialize when page loads
