@@ -276,6 +276,67 @@
         .copy-btn.copied {
             background-color: #28a745;
         }
+
+        /* Viewport switcher styles */
+        .viewport-controls {
+            display: flex;
+            gap: 5px;
+        }
+
+        .viewport-btn {
+            background-color: #6c757d;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            cursor: pointer;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+
+        .viewport-btn:hover {
+            background-color: #545b62;
+        }
+
+        .viewport-btn.active {
+            background-color: #007bff;
+        }
+
+        .viewport-btn.active:hover {
+            background-color: #0056b3;
+        }
+
+        /* Preview container with responsive simulation */
+        .preview-container {
+            transition: max-width 0.3s ease;
+            margin: 0 auto;
+        }
+
+        .preview-container.desktop {
+            max-width: 100%;
+        }
+
+        .preview-container.tablet {
+            max-width: 768px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .preview-container.mobile {
+            max-width: 480px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        /* Force column layouts based on viewport simulation */
+        .preview-container.tablet .specs-container {
+            grid-template-columns: repeat(2, 1fr) !important;
+        }
+
+        .preview-container.mobile .specs-container {
+            grid-template-columns: 1fr !important;
+        }
     </style>
 </head>
 <body>
@@ -305,12 +366,19 @@
             <div class="panel-header">
                 <span>Preview</span>
                 <div>
+                    <div class="viewport-controls" style="display: inline-flex; margin-right: 10px;">
+                        <button class="viewport-btn active" onclick="setViewport('desktop')">Desktop</button>
+                        <button class="viewport-btn" onclick="setViewport('tablet')">Tablet</button>
+                        <button class="viewport-btn" onclick="setViewport('mobile')">Mobile</button>
+                    </div>
                     <button class="btn btn-secondary" onclick="toggleView()">Toggle Code View</button>
                 </div>
             </div>
             <div class="preview-content">
-                <div id="previewArea">
-                    <!-- Preview content will be generated here -->
+                <div class="preview-container desktop" id="previewContainer">
+                    <div id="previewArea">
+                        <!-- Preview content will be generated here -->
+                    </div>
                 </div>
                 <div id="codeArea" style="display: none;">
                     <button class="copy-btn" onclick="copyCode()">Copy</button>
@@ -325,6 +393,7 @@
         let cards = [];
         let isCodeView = false;
         let cardIdCounter = 0;
+        let currentViewport = 'desktop';
 
         // Initialize app
         function init() {
@@ -675,6 +744,24 @@
                 copyBtn.textContent = originalText;
                 copyBtn.classList.remove('copied');
             }, 2000);
+        }
+
+        // Set viewport for preview
+        function setViewport(viewport) {
+            currentViewport = viewport;
+            const previewContainer = document.getElementById('previewContainer');
+            const viewportButtons = document.querySelectorAll('.viewport-btn');
+            
+            // Update container class
+            previewContainer.className = 'preview-container ' + viewport;
+            
+            // Update active button
+            viewportButtons.forEach(btn => {
+                btn.classList.remove('active');
+                if (btn.textContent.toLowerCase() === viewport) {
+                    btn.classList.add('active');
+                }
+            });
         }
 
         // Initialize when page loads
