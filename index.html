@@ -653,6 +653,8 @@
                 
                 if (savedCards) {
                     cards = JSON.parse(savedCards);
+                    renderEditor();
+                    updatePreview();
                 }
                 if (savedCounter) {
                     cardIdCounter = parseInt(savedCounter);
