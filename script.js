@@ -69,6 +69,37 @@ function updateRows(cardId, newContent) {
   }
 }
 
+// Reorder cards based on drag and drop
+function reorderCards(draggedCardId, targetCardId, clientY, targetElement) {
+  const draggedIndex = cards.findIndex(card => card.id === draggedCardId);
+  const targetIndex = cards.findIndex(card => card.id === targetCardId);
+  
+  if (draggedIndex === -1 || targetIndex === -1) return;
+  
+  // Determine if we should insert before or after the target
+  const rect = targetElement.getBoundingClientRect();
+  const midpoint = rect.top + rect.height / 2;
+  const insertBefore = clientY < midpoint;
+  
+  // Remove the dragged card from its current position
+  const draggedCard = cards.splice(draggedIndex, 1)[0];
+  
+  // Calculate new insertion index
+  let newIndex;
+  if (insertBefore) {
+    newIndex = targetIndex > draggedIndex ? targetIndex - 1 : targetIndex;
+  } else {
+    newIndex = targetIndex > draggedIndex ? targetIndex : targetIndex + 1;
+  }
+  
+  // Insert the card at the new position
+  cards.splice(newIndex, 0, draggedCard);
+  
+  // Re-render editor and update preview
+  renderEditor();
+  updatePreview();
+}
+
 // Escape HTML function
 function escapeHtml(text) {
   const div = document.createElement("div");
@@ -84,9 +115,13 @@ function renderEditor() {
   cards.forEach((card) => {
     const cardEditor = document.createElement("div");
     cardEditor.className = "card-editor";
+    cardEditor.dataset.cardId = card.id;
     cardEditor.innerHTML = `
             <div class="card-editor-header">
-                <span>Card ${card.id}</span>
+                <div class="card-editor-header-content">
+                    <span class="drag-handle" draggable="true">⋮⋮</span>
+                    <span>Card ${card.id}</span>
+                </div>
                 <button class="btn btn-danger btn-sm" onclick="deleteCard(${
                   card.id
                 })">×</button>
@@ -116,6 +151,124 @@ function renderEditor() {
                 </div>
             </div>
         `;
+    
+    // Add drag and drop event listeners
+    const dragHandle = cardEditor.querySelector('.drag-handle');
+    
+    dragHandle.addEventListener('dragstart', function(e) {
+      cardEditor.classList.add('dragging');
+      e.dataTransfer.setData('text/plain', card.id);
+      e.dataTransfer.effectAllowed = 'move';
+      
+      // Create a custom drag image
+      const dragImage = cardEditor.cloneNode(true);
+      dragImage.style.transform = 'rotate(5deg) scale(0.9)';
+      dragImage.style.opacity = '0.8';
+      dragImage.style.pointerEvents = 'none';
+      dragImage.style.position = 'absolute';
+      dragImage.style.top = '-1000px';
+      dragImage.style.left = '-1000px';
+      dragImage.style.zIndex = '10000';
+      document.body.appendChild(dragImage);
+      
+      e.dataTransfer.setDragImage(dragImage, 
+        dragImage.offsetWidth / 2, 
+        dragImage.offsetHeight / 2
+      );
+      
+      // Remove the drag image after a short delay
+      setTimeout(() => {
+        if (dragImage.parentNode) {
+          dragImage.parentNode.removeChild(dragImage);
+        }
+      }, 0);
+    });
+    
+    cardEditor.addEventListener('dragend', function(e) {
+      cardEditor.classList.remove('dragging');
+      // Remove all drop indicators and drag-over effects
+      document.querySelectorAll('.drag-drop-indicator').forEach(indicator => {
+        indicator.classList.remove('active');
+      });
+      document.querySelectorAll('.card-editor').forEach(editor => {
+        editor.classList.remove('drag-over');
+      });
+    });
+    
+    cardEditor.addEventListener('dragover', function(e) {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+    });
+    
+    cardEditor.addEventListener('dragenter', function(e) {
+      e.preventDefault();
+      const draggingElement = document.querySelector('.card-editor.dragging');
+      if (draggingElement && draggingElement !== cardEditor) {
+        // Add drag-over effect
+        cardEditor.classList.add('drag-over');
+        
+        // Show drop indicator
+        const rect = cardEditor.getBoundingClientRect();
+        const midpoint = rect.top + rect.height / 2;
+        const insertBefore = e.clientY < midpoint;
+        
+        // Remove all existing indicators and drag-over effects from other cards
+        document.querySelectorAll('.drag-drop-indicator').forEach(indicator => {
+          indicator.classList.remove('active');
+        });
+        document.querySelectorAll('.card-editor').forEach(editor => {
+          if (editor !== cardEditor) {
+            editor.classList.remove('drag-over');
+          }
+        });
+        
+        // Add indicator at appropriate position
+        let indicator = document.querySelector('.drag-drop-indicator.active');
+        if (indicator) {
+          indicator.remove();
+        }
+        
+        indicator = document.createElement('div');
+        indicator.className = 'drag-drop-indicator active';
+        
+        if (insertBefore) {
+          cardEditor.parentNode.insertBefore(indicator, cardEditor);
+        } else {
+          cardEditor.parentNode.insertBefore(indicator, cardEditor.nextSibling);
+        }
+      }
+    });
+    
+    cardEditor.addEventListener('dragleave', function(e) {
+      // Only remove drag-over if we're actually leaving the card
+      const rect = cardEditor.getBoundingClientRect();
+      if (e.clientX < rect.left || e.clientX > rect.right || 
+          e.clientY < rect.top || e.clientY > rect.bottom) {
+        cardEditor.classList.remove('drag-over');
+      }
+    });
+    
+    cardEditor.addEventListener('drop', function(e) {
+      e.preventDefault();
+      const draggedCardId = parseInt(e.dataTransfer.getData('text/plain'));
+      const targetCardId = parseInt(cardEditor.dataset.cardId);
+      
+      // Remove drag-over effect
+      cardEditor.classList.remove('drag-over');
+      
+      if (draggedCardId !== targetCardId) {
+        reorderCards(draggedCardId, targetCardId, e.clientY, cardEditor);
+      }
+      
+      // Clean up indicators and effects
+      document.querySelectorAll('.drag-drop-indicator').forEach(indicator => {
+        indicator.remove();
+      });
+      document.querySelectorAll('.card-editor').forEach(editor => {
+        editor.classList.remove('drag-over');
+      });
+    });
+    
     editorContainer.appendChild(cardEditor);
   });
 }

@@ -135,6 +135,12 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  position: sticky;
+  top: -20px;
+  background-color: white;
+  z-index: 100;
+  padding: 10px 0 10px 0;
+  border-bottom: 1px solid #e9ecef;
 }
 
 .btn {
@@ -174,6 +180,28 @@ body {
   margin-bottom: 20px;
   border-radius: 5px;
   background-color: #fafafa;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+  position: relative;
+}
+
+.card-editor:hover {
+  border-color: #007bff;
+  box-shadow: 0 2px 8px rgba(0, 123, 255, 0.15);
+}
+
+.card-editor.dragging {
+  transform: rotate(5deg) scale(1.05);
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3);
+  z-index: 1000;
+  opacity: 0.8;
+  border-color: #007bff;
+  background-color: #f8f9ff;
+}
+
+.card-editor.drag-over {
+  border-color: #28a745;
+  background-color: #f8fff9;
+  transform: scale(1.02);
 }
 
 .card-editor-header {
@@ -184,6 +212,96 @@ body {
   justify-content: space-between;
   align-items: center;
   font-size: 13px;
+}
+
+.drag-handle {
+  cursor: grab;
+  padding: 6px 8px;
+  margin-right: 8px;
+  color: #666;
+  font-size: 18px;
+  line-height: 1;
+  user-select: none;
+  display: flex;
+  align-items: center;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.drag-handle:hover {
+  color: #007bff;
+  background: rgba(0, 123, 255, 0.1);
+  transform: scale(1.1);
+}
+
+.drag-handle:active {
+  cursor: grabbing;
+  transform: scale(0.95);
+}
+
+.card-editor-header-content {
+  display: flex;
+  align-items: center;
+  flex: 1;
+}
+
+.drag-drop-indicator {
+  height: 4px;
+  background: linear-gradient(90deg, #007bff, #0056b3);
+  border-radius: 2px;
+  margin: 8px 0;
+  opacity: 0;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(0, 123, 255, 0.3);
+  position: relative;
+}
+
+.drag-drop-indicator.active {
+  opacity: 1;
+  animation: pulse 1s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    box-shadow: 0 2px 8px rgba(0, 123, 255, 0.3);
+  }
+  50% {
+    box-shadow: 0 4px 16px rgba(0, 123, 255, 0.6);
+    transform: scaleY(1.2);
+  }
+}
+
+/* Placeholder for empty drop zone */
+.drop-placeholder {
+  height: 60px;
+  border: 2px dashed #007bff;
+  border-radius: 8px;
+  background: rgba(0, 123, 255, 0.05);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #007bff;
+  font-size: 14px;
+  opacity: 0;
+  transition: all 0.2s ease;
+  margin: 10px 0;
+}
+
+.drop-placeholder.active {
+  opacity: 1;
+  animation: breathe 2s ease-in-out infinite;
+}
+
+@keyframes breathe {
+  0%,
+  100% {
+    background: rgba(0, 123, 255, 0.05);
+  }
+  50% {
+    background: rgba(0, 123, 255, 0.1);
+  }
 }
 
 .form-group {
@@ -886,7 +1004,7 @@ textarea.form-control {
 /* Toast notification styles */
 .toast {
   position: fixed;
-  top: 20px;
+  bottom: 20px;
   right: 20px;
   background-color: #28a745;
   color: white;
@@ -895,14 +1013,14 @@ textarea.form-control {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   z-index: 9999;
   opacity: 0;
-  transform: translateX(100%);
+  transform: translateY(100%);
   transition: all 0.3s ease;
   font-size: 14px;
 }
 
 .toast.show {
   opacity: 1;
-  transform: translateX(0);
+  transform: translateY(0);
 }
 
 .toast.error {
