@@ -19,21 +19,28 @@
       <div class="editor-panel">
         <div class="panel-header">
           <span>Card Editor</span>
-          <div>
-            <button class="btn btn-secondary" onclick="addCard()">
-              Add Card
-            </button>
-          </div>
-          <button class="mobile-close-btn" onclick="closeMobileMenu()">×</button>
+          <button class="mobile-close-btn" onclick="closeMobileMenu()">
+            ×
+          </button>
         </div>
         <div class="editor-content">
           <div class="controls">
-            <button class="btn" onclick="saveData()">Save</button>
-            <button class="btn btn-secondary" onclick="loadData()">Load</button>
-            <button class="btn btn-danger" onclick="clearAll()">
-              Clear All
-            </button>
+            <div>
+              <button class="btn" onclick="saveData()">Save</button>
+              <button class="btn btn-secondary" onclick="loadData()">
+                Load
+              </button>
+              <button class="btn btn-danger" onclick="clearAll()">
+                Clear All
+              </button>
+            </div>
+            <div>
+              <button class="btn btn-secondary" onclick="addCard()">
+                Add Card
+              </button>
+            </div>
           </div>
+
           <div id="cardsEditor">
             <!-- Cards will be dynamically added here -->
           </div>

@@ -4,6 +4,20 @@ let isCodeView = false;
 let cardIdCounter = 0;
 let currentViewport = "desktop";
 
+// Update button visibility based on localStorage
+function updateButtonVisibility() {
+  const loadBtn = document.querySelector('button[onclick="loadData()"]');
+  const clearBtn = document.querySelector('button[onclick="clearAll()"]');
+  const hasStoredData = localStorage.getItem('specCards') !== null;
+  
+  if (loadBtn) {
+    loadBtn.style.display = hasStoredData ? 'inline-block' : 'none';
+  }
+  if (clearBtn) {
+    clearBtn.style.display = hasStoredData ? 'inline-block' : 'none';
+  }
+}
+
 // Initialize app
 function init() {
   loadData();
@@ -13,6 +27,7 @@ function init() {
   }
   renderEditor();
   updatePreview();
+  updateButtonVisibility();
 }
 
 // Add new card
@@ -261,6 +276,7 @@ function saveData() {
     localStorage.setItem("specCards", JSON.stringify(cards));
     localStorage.setItem("cardIdCounter", cardIdCounter.toString());
     showToast("Data saved successfully!", "success");
+    updateButtonVisibility();
   } catch (e) {
     showToast("Error saving data: " + e.message, "error");
   }
@@ -307,6 +323,7 @@ function clearAll() {
     updatePreview();
     localStorage.removeItem("specCards");
     localStorage.removeItem("cardIdCounter");
+    updateButtonVisibility();
   }
 }
 
