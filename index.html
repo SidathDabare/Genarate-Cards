@@ -1,73 +1,132 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0"
+    />
     <title>Spec Card Generator</title>
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><text y='14' font-size='16'>📋</text></svg>">
-    <link rel="stylesheet" href="styles.css">
-</head>
-<body>
+    <link
+      rel="icon"
+      href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><text y='14' font-size='16'>📋</text></svg>"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
     <div class="app-container">
-        <!-- Editor Panel -->
-        <div class="editor-panel">
-            <div class="panel-header">
-                <span>Card Editor</span>
-                <div>
-                    <button class="btn btn-secondary" onclick="addCard()">Add Card</button>
-                </div>
-            </div>
-            <div class="editor-content">
-                <div class="controls">
-                    <button class="btn" onclick="saveData()">Save</button>
-                    <button class="btn btn-secondary" onclick="loadData()">Load</button>
-                    <button class="btn btn-danger" onclick="clearAll()">Clear All</button>
-                </div>
-                <div id="cardsEditor">
-                    <!-- Cards will be dynamically added here -->
-                </div>
-            </div>
+      <!-- Editor Panel -->
+      <div class="editor-panel">
+        <div class="panel-header">
+          <span>Card Editor</span>
+          <div>
+            <button class="btn btn-secondary" onclick="addCard()">
+              Add Card
+            </button>
+          </div>
+          <button class="mobile-close-btn" onclick="closeMobileMenu()">×</button>
         </div>
+        <div class="editor-content">
+          <div class="controls">
+            <button class="btn" onclick="saveData()">Save</button>
+            <button class="btn btn-secondary" onclick="loadData()">Load</button>
+            <button class="btn btn-danger" onclick="clearAll()">
+              Clear All
+            </button>
+          </div>
+          <div id="cardsEditor">
+            <!-- Cards will be dynamically added here -->
+          </div>
+        </div>
+      </div>
 
-        <!-- Preview Panel -->
-        <div class="preview-panel">
-            <div class="panel-header">
-                <div style="display: flex; align-items: center; gap: 10px;">
-                    <button class="mobile-menu-toggle" onclick="toggleMobileMenu()">☰</button>
-                    <span>Preview</span>
-                </div>
-                <div>
-                    <div class="viewport-controls" style="display: inline-flex; margin-right: 10px;">
-                        <button class="viewport-btn active" onclick="setViewport('desktop')">🖥️ Desktop</button>
-                        <button class="viewport-btn" onclick="setViewport('tablet')">💻 Tablet</button>
-                        <button class="viewport-btn" onclick="setViewport('mobile')">📱 Mobile</button>
-                    </div>
-                    <button class="btn btn-secondary" onclick="toggleView(event)">Toggle Code View</button>
-                </div>
+      <!-- Preview Panel -->
+      <div class="preview-panel">
+        <div class="panel-header">
+          <div
+            style="
+              display: flex;
+              align-items: center;
+              gap: 10px;
+              justify-content: end;
+            "
+          >
+            <button class="mobile-menu-toggle" onclick="toggleMobileMenu()">
+              ☰
+            </button>
+          </div>
+          <div>
+            <div
+              class="viewport-controls"
+              style="display: inline-flex; margin-right: 10px"
+            >
+              <button
+                class="viewport-btn active"
+                onclick="setViewport('desktop')"
+              >
+                Desktop
+              </button>
+              <button class="viewport-btn" onclick="setViewport('tablet')">
+                Tablet
+              </button>
+              <button class="viewport-btn" onclick="setViewport('mobile')">
+                Mobile
+              </button>
             </div>
-            <div class="preview-content">
-                <div class="preview-container desktop" id="previewContainer">
-                    <div id="previewArea">
-                        <!-- Preview content will be generated here -->
-                    </div>
-                </div>
-                <div id="codeArea" style="display: none;">
-                    <div style="margin-bottom: 10px; display: flex; gap: 10px;">
-                        <button class="code-btn copy-btn" onclick="copyFromTextarea()">Copy</button>
-                        <button class="code-btn paste-btn" onclick="parseFromTextarea()">Parse HTML → Cards</button>
-                        <button class="btn btn-secondary btn-sm" onclick="clearTextarea()">Clear</button>
-                    </div>
-                    <textarea id="codeTextarea" 
-                              style="width: 100%; height: 500px; min-height: 80vh; font-family: 'Courier New', monospace; font-size: 12px; border: 1px solid #ddd; border-radius: 4px; padding: 15px; resize: vertical; box-sizing: border-box;"
-                              placeholder="Paste your HTML code here or edit the generated code. Click 'Parse HTML → Cards' to import cards from HTML."></textarea>
-                </div>
-            </div>
+            <button class="btn btn-secondary" onclick="toggleView(event)">
+              Toggle Code View
+            </button>
+          </div>
         </div>
+        <div class="preview-content">
+          <div class="preview-container desktop" id="previewContainer">
+            <div id="previewArea">
+              <!-- Preview content will be generated here -->
+            </div>
+          </div>
+          <div id="codeArea" style="display: none">
+            <div style="margin-bottom: 10px; display: flex; gap: 10px">
+              <button class="code-btn copy-btn" onclick="copyFromTextarea()">
+                Copy
+              </button>
+              <button class="code-btn paste-btn" onclick="parseFromTextarea()">
+                Parse HTML → Cards
+              </button>
+              <button
+                class="btn btn-secondary btn-sm"
+                onclick="clearTextarea()"
+              >
+                Clear
+              </button>
+            </div>
+            <textarea
+              id="codeTextarea"
+              style="
+                width: 100%;
+                height: 500px;
+                min-height: 80vh;
+                font-family: 'Courier New', monospace;
+                font-size: 12px;
+                border: 1px solid #ddd;
+                border-radius: 4px;
+                padding: 15px;
+                resize: vertical;
+                box-sizing: border-box;
+              "
+              placeholder="Paste your HTML code here or edit the generated code. Click 'Parse HTML → Cards' to import cards from HTML."
+            ></textarea>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- Mobile overlay -->
-    <div class="mobile-overlay" id="mobileOverlay" onclick="closeMobileMenu()"></div>
+    <div
+      class="mobile-overlay"
+      id="mobileOverlay"
+      onclick="closeMobileMenu()"
+    ></div>
 
     <script src="script.js"></script>
-</body>
+  </body>
 </html>

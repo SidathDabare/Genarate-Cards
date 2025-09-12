@@ -74,7 +74,7 @@ function renderEditor() {
                 <span>Card ${card.id}</span>
                 <button class="btn btn-danger btn-sm" onclick="deleteCard(${
                   card.id
-                })">Delete Card</button>
+                })">×</button>
             </div>
             <div class="card-content">
                 <div class="form-group">
@@ -82,7 +82,7 @@ function renderEditor() {
                     <textarea class="form-control" id="title-${
                       card.id
                     }" onchange="updateCardTitle(${card.id}, this.value)"
-                              placeholder="Enter title (one line per row)" rows="1">${escapeHtml(
+                              placeholder="Enter title (one line per row)" rows="2">${escapeHtml(
                                 typeof card.title === "string"
                                   ? card.title
                                   : card.title.join("\n")
@@ -93,7 +93,7 @@ function renderEditor() {
                     <textarea class="form-control" id="rows-${
                       card.id
                     }" onchange="updateRows(${card.id}, this.value)"
-                              placeholder="Enter content (one line per row)" rows="2">${escapeHtml(
+                              placeholder="Enter content (one line per row)" rows="4">${escapeHtml(
                                 typeof card.rows === "string"
                                   ? card.rows
                                   : card.rows.join("\n")
