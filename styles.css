@@ -88,7 +88,6 @@ body {
 .editor-panel {
   width: 25%;
   background-color: #fff;
-  border-right: 2px solid #ddd;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
@@ -115,6 +114,7 @@ body {
   z-index: 100;
   border-bottom: 2px solid #555;
   height: 70px;
+  border-right: 0.5px solid #ddd;
 }
 
 .editor-content {
@@ -683,7 +683,7 @@ textarea.form-control {
   /* Mobile close button for editor panel */
   .mobile-close-btn {
     position: absolute;
-    right: 8px;
+    right: 18px;
     top: 50%;
     transform: translateY(-50%);
     background: #dc3546b6;
@@ -791,14 +791,15 @@ textarea.form-control {
     justify-content: space-between;
   }
 
-  .panel-header > span,
+  /* .panel-header > span,
   .panel-header > div:first-child {
     order: 2;
     flex: 1;
     text-align: center;
     font-size: 11px;
     min-width: 0;
-  }
+    justify-content: space-between;
+  } */
 
   .panel-header .btn {
     padding: 3px 6px;
