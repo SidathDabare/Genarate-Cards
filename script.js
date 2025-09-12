@@ -86,7 +86,6 @@ function renderEditor() {
     cardEditor.className = "card-editor";
     cardEditor.innerHTML = `
             <div class="card-editor-header">
-                <span class="card-drag-handle">⋮⋮</span>
                 <span>Card ${card.id}</span>
                 <button class="btn btn-danger btn-sm" onclick="deleteCard(${
                   card.id
@@ -119,9 +118,6 @@ function renderEditor() {
         `;
     editorContainer.appendChild(cardEditor);
   });
-  
-  // Initialize drag functionality after rendering cards
-  initializeDragAndDrop();
 }
 
 // Generate HTML code
@@ -630,140 +626,6 @@ document.addEventListener("touchmove", function (event) {
     }
   }
 });
-
-// Drag and Drop Functionality
-
-// Variables for drag state
-let draggedCard = null;
-let draggedCardIndex = -1;
-let panelDragOffset = { x: 0, y: 0 };
-let isPanelDragging = false;
-
-// Initialize drag and drop functionality
-function initializeDragAndDrop() {
-  initializePanelDrag();
-  initializeCardDrag();
-}
-
-// Initialize panel dragging
-function initializePanelDrag() {
-  const editorPanel = document.getElementById('editorPanel');
-  const dragHandle = document.getElementById('panelDragHandle');
-  
-  if (!dragHandle || !editorPanel) return;
-
-  dragHandle.addEventListener('mousedown', startPanelDrag);
-  
-  function startPanelDrag(e) {
-    if (e.target.closest('.mobile-close-btn')) return;
-    
-    isPanelDragging = true;
-    const rect = editorPanel.getBoundingClientRect();
-    panelDragOffset.x = e.clientX - rect.left;
-    panelDragOffset.y = e.clientY - rect.top;
-    
-    editorPanel.classList.add('dragging');
-    document.addEventListener('mousemove', doPanelDrag);
-    document.addEventListener('mouseup', endPanelDrag);
-    e.preventDefault();
-  }
-  
-  function doPanelDrag(e) {
-    if (!isPanelDragging) return;
-    
-    const x = e.clientX - panelDragOffset.x;
-    const y = e.clientY - panelDragOffset.y;
-    
-    // Keep panel within viewport bounds
-    const maxX = window.innerWidth - editorPanel.offsetWidth;
-    const maxY = window.innerHeight - editorPanel.offsetHeight;
-    
-    const boundedX = Math.max(0, Math.min(maxX, x));
-    const boundedY = Math.max(0, Math.min(maxY, y));
-    
-    editorPanel.style.left = boundedX + 'px';
-    editorPanel.style.top = boundedY + 'px';
-  }
-  
-  function endPanelDrag() {
-    isPanelDragging = false;
-    editorPanel.classList.remove('dragging');
-    document.removeEventListener('mousemove', doPanelDrag);
-    document.removeEventListener('mouseup', endPanelDrag);
-  }
-}
-
-// Initialize card dragging for reordering
-function initializeCardDrag() {
-  const cardEditors = document.querySelectorAll('.card-editor');
-  
-  cardEditors.forEach((cardEditor, index) => {
-    const dragHandle = cardEditor.querySelector('.card-drag-handle');
-    if (!dragHandle) return;
-    
-    cardEditor.draggable = true;
-    cardEditor.dataset.cardIndex = index;
-    
-    // Add drag event listeners
-    cardEditor.addEventListener('dragstart', handleCardDragStart);
-    cardEditor.addEventListener('dragover', handleCardDragOver);
-    cardEditor.addEventListener('drop', handleCardDrop);
-    cardEditor.addEventListener('dragend', handleCardDragEnd);
-  });
-}
-
-function handleCardDragStart(e) {
-  draggedCard = this;
-  draggedCardIndex = parseInt(this.dataset.cardIndex);
-  this.classList.add('dragging');
-  
-  // Set drag effect
-  e.dataTransfer.effectAllowed = 'move';
-  e.dataTransfer.setData('text/html', this.outerHTML);
-}
-
-function handleCardDragOver(e) {
-  if (e.preventDefault) {
-    e.preventDefault();
-  }
-  
-  e.dataTransfer.dropEffect = 'move';
-  
-  // Add visual feedback
-  this.classList.add('drag-over');
-  return false;
-}
-
-function handleCardDrop(e) {
-  if (e.stopPropagation) {
-    e.stopPropagation();
-  }
-  
-  if (draggedCard !== this) {
-    const dropIndex = parseInt(this.dataset.cardIndex);
-    
-    // Reorder the cards array
-    const draggedCardData = cards[draggedCardIndex];
-    cards.splice(draggedCardIndex, 1);
-    cards.splice(dropIndex, 0, draggedCardData);
-    
-    // Re-render editor and preview
-    renderEditor();
-    updatePreview();
-  }
-  
-  return false;
-}
-
-function handleCardDragEnd(e) {
-  // Clean up drag classes
-  document.querySelectorAll('.card-editor').forEach(card => {
-    card.classList.remove('dragging', 'drag-over');
-  });
-  
-  draggedCard = null;
-  draggedCardIndex = -1;
-}
 
 // Initialize when page loads
 document.addEventListener("DOMContentLoaded", init);
