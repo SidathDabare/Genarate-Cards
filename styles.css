@@ -114,6 +114,7 @@ body {
   top: 0;
   z-index: 100;
   border-bottom: 2px solid #555;
+  height: 70px;
 }
 
 .editor-content {
@@ -527,7 +528,7 @@ textarea.form-control {
     font-size: 14px;
     margin-bottom: 8px;
     margin-right: 8px;
-    min-height: 44px;
+    /* min-height: 44px; */
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -536,7 +537,19 @@ textarea.form-control {
   .btn-sm {
     padding: 8px 12px;
     font-size: 13px;
-    min-height: 36px;
+    /* min-height: 36px; */
+  }
+
+  /* Override for panel header buttons to keep them small */
+  .panel-header .btn {
+    padding: 3px 6px;
+    font-size: 9px;
+    min-height: 20px;
+    width: auto;
+    margin-bottom: 0;
+    order: 3;
+    flex-shrink: 0;
+    border-radius: 3px;
   }
 
   /* Better spacing for mobile */
@@ -555,7 +568,7 @@ textarea.form-control {
     right: 8px;
     top: 50%;
     transform: translateY(-50%);
-    background: #dc3545;
+    background: #dc3546b6;
     color: white;
     border: none;
     width: 24px;

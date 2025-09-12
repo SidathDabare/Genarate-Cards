@@ -412,7 +412,7 @@ function setViewport(viewport) {
   // Update active button
   viewportButtons.forEach((btn) => {
     btn.classList.remove("active");
-    if (btn.textContent.toLowerCase() === viewport) {
+    if (btn.textContent.trim().toLowerCase() === viewport) {
       btn.classList.add("active");
     }
   });
