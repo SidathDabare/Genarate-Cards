@@ -4,6 +4,99 @@ let isCodeView = false;
 let cardIdCounter = 0;
 let currentViewport = "desktop";
 
+// Performance optimization: Cache DOM references and drag state
+let dragState = {
+  isDragging: false,
+  draggedElement: null,
+  dragIndicator: null,
+  lastTargetElement: null,
+  dragStartTime: 0,
+  lastMouseY: 0,
+  velocity: 0,
+  animationId: null
+};
+
+// Throttle function for performance optimization
+function throttle(func, limit) {
+  let inThrottle;
+  return function() {
+    const args = arguments;
+    const context = this;
+    if (!inThrottle) {
+      func.apply(context, args);
+      inThrottle = true;
+      setTimeout(() => inThrottle = false, limit);
+    }
+  }
+}
+
+// Optimized drag indicator management
+function createDragIndicator() {
+  if (!dragState.dragIndicator) {
+    dragState.dragIndicator = document.createElement('div');
+    dragState.dragIndicator.className = 'drag-drop-indicator';
+  }
+  return dragState.dragIndicator;
+}
+
+function showDragIndicator(targetElement, insertBefore) {
+  const indicator = createDragIndicator();
+  indicator.classList.add('active');
+
+  if (insertBefore) {
+    targetElement.parentNode.insertBefore(indicator, targetElement);
+  } else {
+    targetElement.parentNode.insertBefore(indicator, targetElement.nextSibling);
+  }
+}
+
+function hideDragIndicator() {
+  if (dragState.dragIndicator && dragState.dragIndicator.parentNode) {
+    dragState.dragIndicator.classList.remove('active');
+    dragState.dragIndicator.parentNode.removeChild(dragState.dragIndicator);
+  }
+}
+
+function clearAllDragEffects() {
+  // Clear drag-over effects efficiently
+  if (dragState.lastTargetElement) {
+    dragState.lastTargetElement.classList.remove('drag-over');
+  }
+  hideDragIndicator();
+
+  // Cancel any pending animations
+  if (dragState.animationId) {
+    cancelAnimationFrame(dragState.animationId);
+    dragState.animationId = null;
+  }
+}
+
+// Smooth animation using requestAnimationFrame
+function smoothUpdateDragEffects(targetElement, clientY, timestamp) {
+  if (!dragState.isDragging) return;
+
+  // Calculate velocity for momentum effect
+  const deltaTime = timestamp - dragState.dragStartTime;
+  const deltaY = clientY - dragState.lastMouseY;
+  dragState.velocity = deltaY / deltaTime;
+  dragState.lastMouseY = clientY;
+
+  // Apply effects with smooth timing
+  const rect = targetElement.getBoundingClientRect();
+  const midpoint = rect.top + rect.height / 2;
+  const insertBefore = clientY < midpoint;
+
+  // Smooth indicator positioning
+  hideDragIndicator();
+  showDragIndicator(targetElement, insertBefore);
+
+  // Add subtle parallax effect based on velocity
+  const parallaxOffset = Math.max(-5, Math.min(5, dragState.velocity * 0.1));
+  if (dragState.dragIndicator) {
+    dragState.dragIndicator.style.transform = `translateY(${parallaxOffset}px)`;
+  }
+}
+
 // Update button visibility based on localStorage
 function updateButtonVisibility() {
   const loadBtn = document.querySelector('button[onclick="loadData()"]');
@@ -156,27 +249,45 @@ function renderEditor() {
     const dragHandle = cardEditor.querySelector('.drag-handle');
     
     dragHandle.addEventListener('dragstart', function(e) {
-      cardEditor.classList.add('dragging');
+      // Performance: Set drag state and track timing
+      dragState.isDragging = true;
+      dragState.draggedElement = cardEditor;
+      dragState.dragStartTime = performance.now();
+      dragState.lastMouseY = e.clientY;
+      dragState.velocity = 0;
+
+      // Smooth drag start animation
+      requestAnimationFrame(() => {
+        cardEditor.classList.add('dragging');
+        cardEditor.style.transform = 'scale(1.02) rotate(1deg)';
+      });
+
       e.dataTransfer.setData('text/plain', card.id);
       e.dataTransfer.effectAllowed = 'move';
-      
-      // Create a custom drag image
+
+      // Create enhanced drag image with better styling
       const dragImage = cardEditor.cloneNode(true);
-      dragImage.style.transform = 'rotate(5deg) scale(0.9)';
-      dragImage.style.opacity = '0.8';
-      dragImage.style.pointerEvents = 'none';
-      dragImage.style.position = 'absolute';
-      dragImage.style.top = '-1000px';
-      dragImage.style.left = '-1000px';
-      dragImage.style.zIndex = '10000';
+      dragImage.style.cssText = `
+        position: absolute;
+        top: -1000px;
+        left: -1000px;
+        width: ${cardEditor.offsetWidth}px;
+        transform: scale(0.95) rotate(3deg);
+        opacity: 0.9;
+        box-shadow: 0 15px 35px rgba(0, 123, 255, 0.4);
+        border: 2px solid #007bff;
+        border-radius: 8px;
+        z-index: 10000;
+        pointer-events: none;
+      `;
       document.body.appendChild(dragImage);
-      
-      e.dataTransfer.setDragImage(dragImage, 
-        dragImage.offsetWidth / 2, 
+
+      e.dataTransfer.setDragImage(dragImage,
+        dragImage.offsetWidth / 2,
         dragImage.offsetHeight / 2
       );
-      
-      // Remove the drag image after a short delay
+
+      // Clean up drag image
       setTimeout(() => {
         if (dragImage.parentNode) {
           dragImage.parentNode.removeChild(dragImage);
@@ -185,14 +296,33 @@ function renderEditor() {
     });
     
     cardEditor.addEventListener('dragend', function(e) {
-      cardEditor.classList.remove('dragging');
-      // Remove all drop indicators and drag-over effects
-      document.querySelectorAll('.drag-drop-indicator').forEach(indicator => {
-        indicator.classList.remove('active');
-      });
-      document.querySelectorAll('.card-editor').forEach(editor => {
-        editor.classList.remove('drag-over');
-      });
+      // Smooth drag end with spring animation
+      const finalTransform = () => {
+        cardEditor.style.transform = '';
+        cardEditor.classList.remove('dragging');
+      };
+
+      // Apply momentum-based settling animation
+      if (Math.abs(dragState.velocity) > 0.1) {
+        cardEditor.style.transition = 'transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)';
+        cardEditor.style.transform = `translateY(${dragState.velocity * 2}px)`;
+
+        setTimeout(() => {
+          cardEditor.style.transform = '';
+          setTimeout(finalTransform, 200);
+        }, 100);
+      } else {
+        cardEditor.style.transition = 'transform 0.3s ease-out';
+        setTimeout(finalTransform, 50);
+      }
+
+      // Reset drag state
+      dragState.isDragging = false;
+      dragState.draggedElement = null;
+      dragState.lastTargetElement = null;
+      dragState.velocity = 0;
+
+      clearAllDragEffects();
     });
     
     cardEditor.addEventListener('dragover', function(e) {
@@ -200,73 +330,101 @@ function renderEditor() {
       e.dataTransfer.dropEffect = 'move';
     });
     
-    cardEditor.addEventListener('dragenter', function(e) {
+    // Enhanced dragenter with smooth animations
+    const smoothDragEnter = function(e) {
       e.preventDefault();
-      const draggingElement = document.querySelector('.card-editor.dragging');
-      if (draggingElement && draggingElement !== cardEditor) {
-        // Add drag-over effect
-        cardEditor.classList.add('drag-over');
-        
-        // Show drop indicator
-        const rect = cardEditor.getBoundingClientRect();
-        const midpoint = rect.top + rect.height / 2;
-        const insertBefore = e.clientY < midpoint;
-        
-        // Remove all existing indicators and drag-over effects from other cards
-        document.querySelectorAll('.drag-drop-indicator').forEach(indicator => {
-          indicator.classList.remove('active');
-        });
-        document.querySelectorAll('.card-editor').forEach(editor => {
-          if (editor !== cardEditor) {
-            editor.classList.remove('drag-over');
-          }
-        });
-        
-        // Add indicator at appropriate position
-        let indicator = document.querySelector('.drag-drop-indicator.active');
-        if (indicator) {
-          indicator.remove();
-        }
-        
-        indicator = document.createElement('div');
-        indicator.className = 'drag-drop-indicator active';
-        
-        if (insertBefore) {
-          cardEditor.parentNode.insertBefore(indicator, cardEditor);
-        } else {
-          cardEditor.parentNode.insertBefore(indicator, cardEditor.nextSibling);
-        }
+
+      if (!dragState.isDragging || dragState.draggedElement === cardEditor) {
+        return;
       }
-    });
+
+      // Use requestAnimationFrame for smooth updates
+      if (dragState.animationId) {
+        cancelAnimationFrame(dragState.animationId);
+      }
+
+      dragState.animationId = requestAnimationFrame((timestamp) => {
+        // Clear previous target effects with smooth transition
+        if (dragState.lastTargetElement && dragState.lastTargetElement !== cardEditor) {
+          dragState.lastTargetElement.style.transition = 'all 0.2s ease-out';
+          dragState.lastTargetElement.classList.remove('drag-over');
+        }
+
+        // Set new target with smooth entrance
+        dragState.lastTargetElement = cardEditor;
+        cardEditor.style.transition = 'all 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
+        cardEditor.classList.add('drag-over');
+
+        // Add subtle bounce effect
+        cardEditor.style.transform = 'scale(1.01) translateY(-1px)';
+        setTimeout(() => {
+          cardEditor.style.transform = 'scale(1.01)';
+        }, 150);
+
+        // Smooth update with momentum tracking
+        smoothUpdateDragEffects(cardEditor, e.clientY, timestamp);
+      });
+    };
+
+    // Throttle the smooth drag enter
+    const throttledSmoothDragEnter = throttle(smoothDragEnter, 8); // ~120fps for ultra-smooth
+    cardEditor.addEventListener('dragenter', throttledSmoothDragEnter);
     
     cardEditor.addEventListener('dragleave', function(e) {
-      // Only remove drag-over if we're actually leaving the card
+      // Performance: Simplified boundary check
       const rect = cardEditor.getBoundingClientRect();
-      if (e.clientX < rect.left || e.clientX > rect.right || 
+      if (e.clientX < rect.left || e.clientX > rect.right ||
           e.clientY < rect.top || e.clientY > rect.bottom) {
-        cardEditor.classList.remove('drag-over');
+        if (dragState.lastTargetElement === cardEditor) {
+          cardEditor.classList.remove('drag-over');
+          hideDragIndicator();
+        }
       }
     });
     
     cardEditor.addEventListener('drop', function(e) {
       e.preventDefault();
+
+      if (!dragState.isDragging) return;
+
       const draggedCardId = parseInt(e.dataTransfer.getData('text/plain'));
       const targetCardId = parseInt(cardEditor.dataset.cardId);
-      
-      // Remove drag-over effect
-      cardEditor.classList.remove('drag-over');
-      
+
+      // Add satisfying drop animation
+      const dropAnimation = () => {
+        cardEditor.style.transition = 'all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55)';
+        cardEditor.style.transform = 'scale(1.05)';
+
+        setTimeout(() => {
+          cardEditor.style.transform = '';
+          cardEditor.style.transition = '';
+        }, 300);
+      };
+
+      // Add success haptic feedback
+      const successPulse = () => {
+        cardEditor.style.background = 'linear-gradient(45deg, #f8fff9, #e8f7e8)';
+        cardEditor.style.borderColor = '#28a745';
+
+        setTimeout(() => {
+          cardEditor.style.background = '';
+          cardEditor.style.borderColor = '';
+        }, 500);
+      };
+
+      // Perform reordering with smooth feedback
       if (draggedCardId !== targetCardId) {
-        reorderCards(draggedCardId, targetCardId, e.clientY, cardEditor);
+        dropAnimation();
+        successPulse();
+
+        // Slight delay for visual feedback before reordering
+        setTimeout(() => {
+          reorderCards(draggedCardId, targetCardId, e.clientY, cardEditor);
+        }, 100);
       }
-      
-      // Clean up indicators and effects
-      document.querySelectorAll('.drag-drop-indicator').forEach(indicator => {
-        indicator.remove();
-      });
-      document.querySelectorAll('.card-editor').forEach(editor => {
-        editor.classList.remove('drag-over');
-      });
+
+      // Clean up all drag effects efficiently
+      clearAllDragEffects();
     });
     
     editorContainer.appendChild(cardEditor);
