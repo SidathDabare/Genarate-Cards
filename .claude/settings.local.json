@@ -4,11 +4,7 @@
       "Bash(start index.html)",
       "Bash(python:*)",
       "Bash(node:*)",
-      "Read(//c/Users/sidat/Pictures/Screenshots/**)",
-      "Bash(start http://localhost:8000)",
-      "Bash(curl:*)",
-      "Bash(python3:*)",
-      "Bash(where python)"
+      "Read(//c/Users/sidat/Pictures/Screenshots/**)"
     ],
     "deny": [],
     "ask": []

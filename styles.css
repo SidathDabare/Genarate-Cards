@@ -174,29 +174,14 @@ body {
   background-color: #545b62;
 }
 
-/* Card Editor Styles - Ultra-optimized for smooth dragging */
+/* Card Editor Styles */
 .card-editor {
   border: 1px solid #ddd;
   margin-bottom: 20px;
   border-radius: 5px;
   background-color: #fafafa;
-  transition: none; /* No transitions by default for max performance */
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
   position: relative;
-  /* Minimal GPU optimization */
-  transform: translate3d(0, 0, 0);
-}
-
-/* Only enable transitions when NOT dragging */
-.card-editor:not(.dragging):hover {
-  border-color: #007bff;
-  transition: border-color 0.15s ease;
-}
-
-/* Completely disable ALL transitions during dragging */
-.dragging-active,
-.dragging-active * {
-  transition: none !important;
-  animation: none !important;
 }
 
 .card-editor:hover {
@@ -205,8 +190,18 @@ body {
 }
 
 .card-editor.dragging {
-  opacity: 0.6;
-  /* Minimal visual feedback */
+  transform: rotate(5deg) scale(1.05);
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3);
+  z-index: 1000;
+  opacity: 0.8;
+  border-color: #007bff;
+  background-color: #f8f9ff;
+}
+
+.card-editor.drag-over {
+  border-color: #28a745;
+  background-color: #f8fff9;
+  transform: scale(1.02);
 }
 
 .card-editor-header {
@@ -230,45 +225,19 @@ body {
   display: flex;
   align-items: center;
   border-radius: 4px;
+  transition: all 0.2s ease;
   background: rgba(0, 0, 0, 0.05);
-  /* Minimal styling for max performance */
 }
 
 .drag-handle:hover {
   color: #007bff;
   background: rgba(0, 123, 255, 0.1);
+  transform: scale(1.1);
 }
 
 .drag-handle:active {
   cursor: grabbing;
-}
-
-/* Touch-specific drag styles */
-.card-editor.touch-dragging {
-  z-index: 1000 !important;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
-  border-color: #007bff;
-  background-color: #f8f9ff;
-  will-change: transform;
-  transition: none !important;
-}
-
-/* Improve touch targets on mobile */
-@media (max-width: 768px) {
-  .drag-handle {
-    padding: 12px 16px;
-    font-size: 20px;
-    margin-right: 12px;
-    /* Larger touch target */
-    min-width: 44px;
-    min-height: 44px;
-    justify-content: center;
-  }
-
-  /* Enhanced visual feedback for touch */
-  .card-editor.touch-dragging {
-    filter: brightness(1.1) contrast(1.05);
-  }
+  transform: scale(0.95);
 }
 
 .card-editor-header-content {
@@ -278,10 +247,30 @@ body {
 }
 
 .drag-drop-indicator {
-  height: 3px;
-  background: #007bff;
-  margin: 4px 0;
-  /* Ultra-minimal for maximum performance */
+  height: 4px;
+  background: linear-gradient(90deg, #007bff, #0056b3);
+  border-radius: 2px;
+  margin: 8px 0;
+  opacity: 0;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(0, 123, 255, 0.3);
+  position: relative;
+}
+
+.drag-drop-indicator.active {
+  opacity: 1;
+  animation: pulse 1s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    box-shadow: 0 2px 8px rgba(0, 123, 255, 0.3);
+  }
+  50% {
+    box-shadow: 0 4px 16px rgba(0, 123, 255, 0.6);
+    transform: scaleY(1.2);
+  }
 }
 
 /* Placeholder for empty drop zone */
