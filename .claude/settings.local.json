@@ -3,7 +3,8 @@
     "allow": [
       "Bash(start index.html)",
       "Bash(python:*)",
-      "Bash(node:*)"
+      "Bash(node:*)",
+      "Read(//c/Users/sidat/Pictures/Screenshots/**)"
     ],
     "deny": [],
     "ask": []

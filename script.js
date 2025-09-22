@@ -608,18 +608,130 @@ function parseHTMLToCards(htmlContent) {
   try {
     const parser = new DOMParser();
     const doc = parser.parseFromString(htmlContent, "text/html");
-    const specCards = doc.querySelectorAll(".spec-card");
+    let specCards = doc.querySelectorAll(".spec-card");
+
+    // If no cards found in full document, try parsing as fragment
+    if (specCards.length === 0) {
+      // Try parsing as HTML fragment
+      const tempDiv = document.createElement('div');
+      tempDiv.innerHTML = htmlContent;
+      specCards = tempDiv.querySelectorAll(".spec-card");
+    }
+
+    // If still no spec-cards found, try to find common card structures
+    if (specCards.length === 0) {
+      const tempDiv = document.createElement('div');
+      tempDiv.innerHTML = htmlContent;
+
+      // Try common card selectors
+      const cardSelectors = [
+        '.card',
+        '.content-card',
+        '.item',
+        '.box',
+        'div[class*="card"]',
+        'article',
+        'section'
+      ];
+
+      for (const selector of cardSelectors) {
+        const potentialCards = tempDiv.querySelectorAll(selector);
+        if (potentialCards.length > 0) {
+          specCards = potentialCards;
+          break;
+        }
+      }
+    }
 
     if (specCards.length === 0) {
-      throw new Error("No spec cards found in HTML");
+      // Debug: log what was actually parsed
+      console.log("Parsed HTML content:", htmlContent.substring(0, 500) + "...");
+      console.log("Available elements:", doc.body ? doc.body.innerHTML : "No body found");
+
+      throw new Error(`No cards found in HTML. Please ensure your HTML contains card-like elements.
+
+Preferred structure:
+<div class="spec-card">
+  <div class="spec-header">Card Title</div>
+  <div class="spec-content">Card content here</div>
+</div>
+
+Or use common card classes like: .card, .content-card, .item, .box, article, or section`);
     }
 
     const parsedCards = [];
     let maxId = 0;
 
     specCards.forEach((card, index) => {
-      const headerElement = card.querySelector(".spec-header");
-      const contentElement = card.querySelector(".spec-content");
+      let headerElement = card.querySelector(".spec-header");
+      let contentElement = card.querySelector(".spec-content");
+
+      // If exact spec-header/spec-content not found, try common header/content patterns
+      if (!headerElement || !contentElement) {
+        // Try various header selectors
+        const headerSelectors = [
+          '.header', '.title', '.card-header', '.card-title',
+          'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
+          '.name', '.label'
+        ];
+
+        // Try various content selectors
+        const contentSelectors = [
+          '.content', '.body', '.card-body', '.card-content',
+          '.description', '.text', '.details', 'p'
+        ];
+
+        // Find header
+        if (!headerElement) {
+          for (const selector of headerSelectors) {
+            headerElement = card.querySelector(selector);
+            if (headerElement) break;
+          }
+        }
+
+        // Find content
+        if (!contentElement) {
+          for (const selector of contentSelectors) {
+            contentElement = card.querySelector(selector);
+            if (contentElement) break;
+          }
+        }
+
+        // If still no specific header/content found, try to extract from card directly
+        if (!headerElement && !contentElement) {
+          // Use first child as header and remaining as content
+          const children = Array.from(card.children);
+          if (children.length >= 2) {
+            headerElement = children[0];
+            contentElement = children[1];
+          } else if (children.length === 1) {
+            // Use card text content as both header and content
+            headerElement = children[0];
+            contentElement = children[0];
+          } else {
+            // Use card's direct text content
+            const textContent = card.textContent.trim();
+            if (textContent) {
+              // Create temporary elements
+              const tempHeader = document.createElement('div');
+              const tempContent = document.createElement('div');
+
+              // Split by lines if possible, otherwise use whole text as header
+              const lines = textContent.split('\n').map(line => line.trim()).filter(line => line);
+              if (lines.length > 1) {
+                tempHeader.textContent = lines[0];
+                tempContent.innerHTML = lines.slice(1).join('<br>');
+              } else {
+                tempHeader.textContent = textContent;
+                tempContent.textContent = textContent;
+              }
+
+              headerElement = tempHeader;
+              contentElement = tempContent;
+            }
+          }
+        }
+      }
 
       if (!headerElement || !contentElement) {
         return; // Skip invalid cards
