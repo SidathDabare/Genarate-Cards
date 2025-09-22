@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Performance Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .test-results { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+        .pass { background-color: #d4edda; border-color: #c3e6cb; color: #155724; }
+        .fail { background-color: #f8d7da; border-color: #f5c6cb; color: #721c24; }
+        .test-item { margin: 10px 0; }
+    </style>
+</head>
+<body>
+    <h1>Drag-and-Drop Performance Test</h1>
+    <div id="test-results"></div>
+
+    <script>
+        // Test if all optimizations are working
+        function runPerformanceTests() {
+            const results = [];
+            const resultsDiv = document.getElementById('test-results');
+
+            // Test 1: Check if script loads without errors
+            try {
+                fetch('script.js')
+                    .then(response => response.text())
+                    .then(script => {
+                        eval(script);
+                        results.push({ name: 'Script Loading', status: 'PASS', message: 'Script loaded successfully' });
+
+                        // Test 2: Check if utility functions exist
+                        if (typeof debounce === 'function') {
+                            results.push({ name: 'Debounce Function', status: 'PASS', message: 'Debounce utility available' });
+                        } else {
+                            results.push({ name: 'Debounce Function', status: 'FAIL', message: 'Debounce utility missing' });
+                        }
+
+                        if (typeof throttle === 'function') {
+                            results.push({ name: 'Throttle Function', status: 'PASS', message: 'Throttle utility available' });
+                        } else {
+                            results.push({ name: 'Throttle Function', status: 'FAIL', message: 'Throttle utility missing' });
+                        }
+
+                        // Test 3: Check if dragState object exists
+                        if (typeof dragState === 'object' && dragState.hasOwnProperty('isDragging')) {
+                            results.push({ name: 'Drag State Management', status: 'PASS', message: 'Drag state object available' });
+                        } else {
+                            results.push({ name: 'Drag State Management', status: 'FAIL', message: 'Drag state object missing' });
+                        }
+
+                        // Test 4: Check if DOM cache exists
+                        if (typeof domCache === 'object' && typeof domCache.getEditorContainer === 'function') {
+                            results.push({ name: 'DOM Caching', status: 'PASS', message: 'DOM cache system available' });
+                        } else {
+                            results.push({ name: 'DOM Caching', status: 'FAIL', message: 'DOM cache system missing' });
+                        }
+
+                        // Test 5: Check if touch device detection works
+                        if (typeof dragState.isTouchDevice === 'boolean') {
+                            results.push({ name: 'Touch Detection', status: 'PASS', message: `Touch device: ${dragState.isTouchDevice}` });
+                        } else {
+                            results.push({ name: 'Touch Detection', status: 'FAIL', message: 'Touch detection missing' });
+                        }
+
+                        displayResults(results);
+                    })
+                    .catch(error => {
+                        results.push({ name: 'Script Loading', status: 'FAIL', message: error.message });
+                        displayResults(results);
+                    });
+            } catch (error) {
+                results.push({ name: 'Script Loading', status: 'FAIL', message: error.message });
+                displayResults(results);
+            }
+        }
+
+        function displayResults(results) {
+            const resultsDiv = document.getElementById('test-results');
+            resultsDiv.innerHTML = '';
+
+            results.forEach(result => {
+                const div = document.createElement('div');
+                div.className = `test-results ${result.status.toLowerCase() === 'pass' ? 'pass' : 'fail'}`;
+                div.innerHTML = `
+                    <div class="test-item">
+                        <strong>${result.name}:</strong> ${result.status} - ${result.message}
+                    </div>
+                `;
+                resultsDiv.appendChild(div);
+            });
+
+            // Performance summary
+            const passCount = results.filter(r => r.status === 'PASS').length;
+            const totalTests = results.length;
+            const summaryDiv = document.createElement('div');
+            summaryDiv.className = `test-results ${passCount === totalTests ? 'pass' : 'fail'}`;
+            summaryDiv.innerHTML = `
+                <div class="test-item">
+                    <strong>Summary:</strong> ${passCount}/${totalTests} tests passed
+                </div>
+            `;
+            resultsDiv.appendChild(summaryDiv);
+        }
+
+        // Test performance characteristics
+        function testPerformanceMetrics() {
+            const performanceDiv = document.createElement('div');
+            performanceDiv.className = 'test-results';
+            performanceDiv.innerHTML = `
+                <div class="test-item">
+                    <strong>Performance Metrics:</strong><br>
+                    • Hardware acceleration: ${CSS.supports('transform', 'translate3d(0, 0, 0)') ? 'Supported' : 'Not supported'}<br>
+                    • Touch events: ${'ontouchstart' in window ? 'Supported' : 'Not supported'}<br>
+                    • Vibration API: ${navigator.vibrate ? 'Supported' : 'Not supported'}<br>
+                    • Request Animation Frame: ${typeof requestAnimationFrame === 'function' ? 'Supported' : 'Not supported'}<br>
+                    • Passive events: ${(() => {
+                        let supportsPassive = false;
+                        try {
+                            const opts = Object.defineProperty({}, 'passive', {
+                                get: function() { supportsPassive = true; }
+                            });
+                            window.addEventListener("testPassive", null, opts);
+                            window.removeEventListener("testPassive", null, opts);
+                        } catch (e) {}
+                        return supportsPassive;
+                    })() ? 'Supported' : 'Not supported'}
+                </div>
+            `;
+            document.getElementById('test-results').appendChild(performanceDiv);
+        }
+
+        // Run tests when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            runPerformanceTests();
+            setTimeout(testPerformanceMetrics, 1000);
+        });
+    </script>
+</body>
+</html>

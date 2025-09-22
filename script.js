@@ -4,6 +4,77 @@ let isCodeView = false;
 let cardIdCounter = 0;
 let currentViewport = "desktop";
 
+// Simplified drag state for maximum performance
+let dragState = {
+  isDragging: false,
+  draggedElement: null,
+  draggedIndex: -1,
+  dropIndicator: null,
+  animationFrame: null,
+  isTouchDevice: 'ontouchstart' in window
+};
+
+// DOM element cache for performance
+let domCache = {
+  editorContainer: null,
+  previewArea: null,
+  codeTextarea: null,
+
+  // Cache frequently accessed elements
+  getEditorContainer() {
+    if (!this.editorContainer) {
+      this.editorContainer = document.getElementById("cardsEditor");
+    }
+    return this.editorContainer;
+  },
+
+  getPreviewArea() {
+    if (!this.previewArea) {
+      this.previewArea = document.getElementById("previewArea");
+    }
+    return this.previewArea;
+  },
+
+  getCodeTextarea() {
+    if (!this.codeTextarea) {
+      this.codeTextarea = document.getElementById("codeTextarea");
+    }
+    return this.codeTextarea;
+  },
+
+  // Clear cache when DOM structure changes
+  clearCache() {
+    this.editorContainer = null;
+    this.previewArea = null;
+    this.codeTextarea = null;
+  }
+};
+
+// Debounce utility function
+function debounce(func, wait) {
+  let timeout;
+  return function executedFunction(...args) {
+    const later = () => {
+      clearTimeout(timeout);
+      func(...args);
+    };
+    clearTimeout(timeout);
+    timeout = setTimeout(later, wait);
+  };
+}
+
+// Throttle utility function for high-frequency events
+function throttle(func, limit) {
+  let inThrottle;
+  return function(...args) {
+    if (!inThrottle) {
+      func.apply(this, args);
+      inThrottle = true;
+      setTimeout(() => inThrottle = false, limit);
+    }
+  };
+}
+
 // Update button visibility based on localStorage
 function updateButtonVisibility() {
   const loadBtn = document.querySelector('button[onclick="loadData()"]');
@@ -69,21 +140,29 @@ function updateRows(cardId, newContent) {
   }
 }
 
-// Reorder cards based on drag and drop
+// Create debounced update functions for better performance
+const debouncedRenderEditor = debounce(renderEditor, 16); // ~60fps
+const debouncedUpdatePreview = debounce(updatePreview, 16);
+const debouncedUpdate = debounce(() => {
+  renderEditor();
+  updatePreview();
+}, 16);
+
+// Optimized reorder function with better performance
 function reorderCards(draggedCardId, targetCardId, clientY, targetElement) {
   const draggedIndex = cards.findIndex(card => card.id === draggedCardId);
   const targetIndex = cards.findIndex(card => card.id === targetCardId);
-  
+
   if (draggedIndex === -1 || targetIndex === -1) return;
-  
+
   // Determine if we should insert before or after the target
   const rect = targetElement.getBoundingClientRect();
   const midpoint = rect.top + rect.height / 2;
   const insertBefore = clientY < midpoint;
-  
+
   // Remove the dragged card from its current position
   const draggedCard = cards.splice(draggedIndex, 1)[0];
-  
+
   // Calculate new insertion index
   let newIndex;
   if (insertBefore) {
@@ -91,13 +170,66 @@ function reorderCards(draggedCardId, targetCardId, clientY, targetElement) {
   } else {
     newIndex = targetIndex > draggedIndex ? targetIndex : targetIndex + 1;
   }
-  
+
   // Insert the card at the new position
   cards.splice(newIndex, 0, draggedCard);
-  
-  // Re-render editor and update preview
-  renderEditor();
-  updatePreview();
+
+  // Use debounced updates for better performance
+  debouncedUpdate();
+}
+
+// Ultra-fast drag optimization - minimal DOM manipulation
+function initializeDragIndicator() {
+  if (!dragState.dropIndicator) {
+    dragState.dropIndicator = document.createElement('div');
+    dragState.dropIndicator.className = 'drag-drop-indicator';
+    dragState.dropIndicator.style.cssText = `
+      height: 4px;
+      background: linear-gradient(90deg, #007bff, #0056b3);
+      border-radius: 2px;
+      margin: 8px 0;
+      opacity: 0;
+      transform: translate3d(0, 0, 0);
+      will-change: opacity;
+      pointer-events: none;
+      position: absolute;
+      left: 0;
+      right: 0;
+    `;
+  }
+}
+
+function cleanupDragState() {
+  // Cancel any pending animation frames
+  if (dragState.animationFrame) {
+    cancelAnimationFrame(dragState.animationFrame);
+    dragState.animationFrame = null;
+  }
+
+  // Fast cleanup without querySelectorAll
+  if (dragState.draggedElement) {
+    dragState.draggedElement.classList.remove('dragging');
+    dragState.draggedElement.style.transform = '';
+    dragState.draggedElement.style.zIndex = '';
+    dragState.draggedElement.style.opacity = '';
+  }
+
+  // Hide indicator
+  if (dragState.dropIndicator && dragState.dropIndicator.parentNode) {
+    dragState.dropIndicator.style.opacity = '0';
+    dragState.dropIndicator.parentNode.removeChild(dragState.dropIndicator);
+  }
+
+  // Reset state
+  dragState.isDragging = false;
+  dragState.draggedElement = null;
+  dragState.draggedIndex = -1;
+
+  // Re-enable transitions
+  const editorContainer = domCache.getEditorContainer();
+  if (editorContainer) {
+    editorContainer.classList.remove('dragging-active');
+  }
 }
 
 // Escape HTML function
@@ -107,9 +239,11 @@ function escapeHtml(text) {
   return div.innerHTML;
 }
 
-// Render editor panel
+// Render editor panel with cached DOM access
 function renderEditor() {
-  const editorContainer = document.getElementById("cardsEditor");
+  const editorContainer = domCache.getEditorContainer();
+  if (!editorContainer) return;
+
   editorContainer.innerHTML = "";
 
   cards.forEach((card) => {
@@ -156,119 +290,94 @@ function renderEditor() {
     const dragHandle = cardEditor.querySelector('.drag-handle');
     
     dragHandle.addEventListener('dragstart', function(e) {
+      // Minimal drag start setup
+      dragState.isDragging = true;
+      dragState.draggedElement = cardEditor;
+      dragState.draggedIndex = cards.findIndex(c => c.id === card.id);
+
+      // Disable transitions for performance
+      domCache.getEditorContainer().classList.add('dragging-active');
+
       cardEditor.classList.add('dragging');
       e.dataTransfer.setData('text/plain', card.id);
       e.dataTransfer.effectAllowed = 'move';
-      
-      // Create a custom drag image
-      const dragImage = cardEditor.cloneNode(true);
-      dragImage.style.transform = 'rotate(5deg) scale(0.9)';
-      dragImage.style.opacity = '0.8';
-      dragImage.style.pointerEvents = 'none';
-      dragImage.style.position = 'absolute';
-      dragImage.style.top = '-1000px';
-      dragImage.style.left = '-1000px';
-      dragImage.style.zIndex = '10000';
-      document.body.appendChild(dragImage);
-      
-      e.dataTransfer.setDragImage(dragImage, 
-        dragImage.offsetWidth / 2, 
-        dragImage.offsetHeight / 2
-      );
-      
-      // Remove the drag image after a short delay
-      setTimeout(() => {
-        if (dragImage.parentNode) {
-          dragImage.parentNode.removeChild(dragImage);
-        }
-      }, 0);
+
+      // Simplified drag image
+      e.dataTransfer.setDragImage(cardEditor, cardEditor.offsetWidth / 2, cardEditor.offsetHeight / 2);
+
+      // Initialize indicator
+      initializeDragIndicator();
     });
     
-    cardEditor.addEventListener('dragend', function(e) {
-      cardEditor.classList.remove('dragging');
-      // Remove all drop indicators and drag-over effects
-      document.querySelectorAll('.drag-drop-indicator').forEach(indicator => {
-        indicator.classList.remove('active');
-      });
-      document.querySelectorAll('.card-editor').forEach(editor => {
-        editor.classList.remove('drag-over');
-      });
-    });
-    
+    cardEditor.addEventListener('dragend', cleanupDragState);
+
     cardEditor.addEventListener('dragover', function(e) {
+      if (!dragState.isDragging) return;
       e.preventDefault();
       e.dataTransfer.dropEffect = 'move';
     });
-    
+
+    // Ultra-minimal dragenter - no throttling, minimal work
     cardEditor.addEventListener('dragenter', function(e) {
+      if (!dragState.isDragging || dragState.draggedElement === cardEditor) return;
       e.preventDefault();
-      const draggingElement = document.querySelector('.card-editor.dragging');
-      if (draggingElement && draggingElement !== cardEditor) {
-        // Add drag-over effect
-        cardEditor.classList.add('drag-over');
-        
-        // Show drop indicator
-        const rect = cardEditor.getBoundingClientRect();
-        const midpoint = rect.top + rect.height / 2;
-        const insertBefore = e.clientY < midpoint;
-        
-        // Remove all existing indicators and drag-over effects from other cards
-        document.querySelectorAll('.drag-drop-indicator').forEach(indicator => {
-          indicator.classList.remove('active');
-        });
-        document.querySelectorAll('.card-editor').forEach(editor => {
-          if (editor !== cardEditor) {
-            editor.classList.remove('drag-over');
-          }
-        });
-        
-        // Add indicator at appropriate position
-        let indicator = document.querySelector('.drag-drop-indicator.active');
-        if (indicator) {
-          indicator.remove();
-        }
-        
-        indicator = document.createElement('div');
-        indicator.className = 'drag-drop-indicator active';
-        
-        if (insertBefore) {
-          cardEditor.parentNode.insertBefore(indicator, cardEditor);
-        } else {
-          cardEditor.parentNode.insertBefore(indicator, cardEditor.nextSibling);
-        }
-      }
-    });
-    
-    cardEditor.addEventListener('dragleave', function(e) {
-      // Only remove drag-over if we're actually leaving the card
+
+      // Only show indicator, no other visual changes
       const rect = cardEditor.getBoundingClientRect();
-      if (e.clientX < rect.left || e.clientX > rect.right || 
-          e.clientY < rect.top || e.clientY > rect.bottom) {
-        cardEditor.classList.remove('drag-over');
+      const insertBefore = e.clientY < rect.top + rect.height / 2;
+
+      // Show indicator with minimal DOM work
+      if (dragState.dropIndicator) {
+        dragState.dropIndicator.style.opacity = '1';
+        if (insertBefore) {
+          cardEditor.parentNode.insertBefore(dragState.dropIndicator, cardEditor);
+        } else {
+          cardEditor.parentNode.insertBefore(dragState.dropIndicator, cardEditor.nextSibling);
+        }
       }
     });
     
     cardEditor.addEventListener('drop', function(e) {
+      if (!dragState.isDragging) return;
       e.preventDefault();
+
       const draggedCardId = parseInt(e.dataTransfer.getData('text/plain'));
       const targetCardId = parseInt(cardEditor.dataset.cardId);
-      
-      // Remove drag-over effect
-      cardEditor.classList.remove('drag-over');
-      
+
       if (draggedCardId !== targetCardId) {
-        reorderCards(draggedCardId, targetCardId, e.clientY, cardEditor);
+        // Ultra-fast reorder without immediate re-render
+        const draggedIndex = cards.findIndex(c => c.id === draggedCardId);
+        const targetIndex = cards.findIndex(c => c.id === targetCardId);
+
+        if (draggedIndex !== -1 && targetIndex !== -1) {
+          const rect = cardEditor.getBoundingClientRect();
+          const insertBefore = e.clientY < rect.top + rect.height / 2;
+
+          // Remove and insert
+          const draggedCard = cards.splice(draggedIndex, 1)[0];
+          let newIndex = insertBefore ? targetIndex : targetIndex + 1;
+          if (draggedIndex < targetIndex && !insertBefore) newIndex--;
+          cards.splice(newIndex, 0, draggedCard);
+
+          // Delayed re-render for smooth drop
+          requestAnimationFrame(() => {
+            renderEditor();
+            updatePreview();
+          });
+        }
       }
-      
-      // Clean up indicators and effects
-      document.querySelectorAll('.drag-drop-indicator').forEach(indicator => {
-        indicator.remove();
-      });
-      document.querySelectorAll('.card-editor').forEach(editor => {
-        editor.classList.remove('drag-over');
-      });
+
+      cleanupDragState();
     });
-    
+
+    // Simplified touch support - just enable draggable on touch devices
+    if (dragState.isTouchDevice) {
+      // Add haptic feedback
+      dragHandle.addEventListener('touchstart', function() {
+        if (navigator.vibrate) navigator.vibrate(30);
+      }, { passive: true });
+    }
+
     editorContainer.appendChild(cardEditor);
   });
 }
@@ -390,10 +499,12 @@ function generateHTML() {
 </html>`;
 }
 
-// Update preview
+// Update preview with cached DOM access
 function updatePreview() {
-  const previewArea = document.getElementById("previewArea");
-  const codeTextarea = document.getElementById("codeTextarea");
+  const previewArea = domCache.getPreviewArea();
+  const codeTextarea = domCache.getCodeTextarea();
+
+  if (!previewArea || !codeTextarea) return;
 
   // Generate cards HTML for preview
   const cardsHTML = cards
